@@ -25,6 +25,7 @@ transformers>=4.35.0
 
 # Portfolio Optimization
 PyPortfolioOpt>=1.5.0
+cvxpy>=1.4.0
 
 # Interactive Web Dashboard
 streamlit>=1.30.0

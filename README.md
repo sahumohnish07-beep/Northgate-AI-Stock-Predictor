@@ -35,8 +35,17 @@ An enterprise-grade, end-to-end AI platform that predicts stock prices using Mac
   - Merged sentiment scores and lag features into the technical feature matrix without lookahead leakage.
   - Retrained the best model to evaluate predictive impact; results saved to `data/processed/sentiment_model_comparison.csv`.
   - Unit tests added in `tests/test_sentiment.py`.
-- [ ] **Phase 5: Portfolio Optimization & Recommendation Engine**
-  - PyPortfolioOpt Modern Portfolio Theory and multi-factor Buy/Hold/Sell decisions.
+- [x] **Phase 5: Portfolio Optimization & Recommendation Engine**
+  - Built `src/portfolio.py` using Modern Portfolio Theory (MPT) via `PyPortfolioOpt`.
+  - Computed annualized expected returns ($\mu$) and covariance matrix ($\Sigma$) across 5 premier Indian equities.
+  - Implemented 3 investor risk profiles:
+    - **Low Risk**: Minimum Volatility portfolio ($w_i \ge 0$).
+    - **Medium Risk**: Maximum Sharpe Ratio tangency portfolio ($R_f = 6.0\%$).
+    - **High Risk**: Maximum Return subject to a single-asset weight cap ($w_i \le 40\%$).
+  - Exported allocation metrics to `data/processed/portfolio_allocations.csv`.
+  - Generated and saved Efficient Frontier chart with risk profile markers to `data/processed/efficient_frontier.png`.
+  - Added multi-factor algorithmic Buy / Hold / Sell / Underweight recommendation framework.
+  - Comprehensive unit test suite in `tests/test_portfolio.py`.
 - [ ] **Phase 6: Interactive Streamlit Dashboard**
   - Plotly interactive charts, model comparison, and portfolio allocation UI.
 
@@ -54,6 +63,32 @@ Evaluated on **RELIANCE.NS** using chronological 80/20 train/test split:
 *Data Artifacts:*
 - Daily aggregated sentiment dataset: `data/processed/sentiment.csv`
 - Model comparison table: `data/processed/sentiment_model_comparison.csv`
+
+---
+
+## 📊 Phase 5 Portfolio Optimization Benchmark & Risk Profiles
+
+Portfolio optimized across the 5 premier Indian equities (`RELIANCE.NS`, `TCS.NS`, `INFY.NS`, `HDFCBANK.NS`, `ITC.NS`) over 5-year historical trading data with risk-free rate $R_f = 6.0\%$:
+
+| Risk Profile | Objective | Expected Annual Return | Annual Volatility | Sharpe Ratio | Top Asset Allocations |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **Low Risk** | Min Volatility | 3.17% | 14.32% | -0.20 | ITC (35.5%), HDFCBANK (26.0%), TCS (22.0%), RELIANCE (14.3%) |
+| **Medium Risk** | Max Sharpe Ratio | 9.56% | 19.76% | +0.18 | ITC (100.0%) |
+| **High Risk** | Max Return (40% Cap) | 5.30% | 15.95% | -0.04 | ITC (40.0%), RELIANCE (40.0%), HDFCBANK (20.0%) |
+
+### Algorithmic Allocation & Stock Recommendations
+
+| Ticker | Mean Weight | Low Risk | Medium Risk | High Risk | Recommendation |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **ITC.NS** | 58.50% | 35.51% | 100.00% | 40.00% | **Strong Buy (Overweight)** |
+| **RELIANCE.NS** | 18.09% | 14.27% | 0.00% | 40.00% | **Buy / Moderate Allocation** |
+| **HDFCBANK.NS** | 15.34% | 26.02% | 0.00% | 20.00% | **Buy / Moderate Allocation** |
+| **TCS.NS** | 7.34% | 22.02% | 0.00% | 0.00% | **Hold / Selective** |
+| **INFY.NS** | 0.72% | 2.17% | 0.00% | 0.00% | **Underweight / Avoid** |
+
+*Data & Visualization Artifacts:*
+- Allocations dataset: `data/processed/portfolio_allocations.csv`
+- Efficient Frontier plot: `data/processed/efficient_frontier.png`
 
 ---
 
@@ -79,7 +114,12 @@ python src/lstm_model.py RELIANCE.NS
 python src/sentiment.py RELIANCE.NS
 ```
 
-### 5. Run All Unit Tests
+### 5. Run Portfolio Optimization
+```bash
+python src/portfolio.py
+```
+
+### 6. Run All Unit Tests
 ```bash
 python -m unittest discover tests
 ```
