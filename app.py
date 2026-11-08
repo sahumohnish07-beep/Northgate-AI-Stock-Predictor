@@ -508,7 +508,8 @@ with tab_prediction:
     )
 
     # Confidence interval band (based on historical standard error)
-    hist_std = float(df_stock["Close"].pct_change().std() * np.sqrt(np.arange(1, prediction_horizon + 1)))
+    daily_std = float(df_stock["Close"].pct_change().std())
+    hist_std = [daily_std * np.sqrt(h) for h in range(1, prediction_horizon + 1)]
     upper_band = [last_close] + [p * (1.0 + 1.96 * s) for p, s in zip(predicted_prices, hist_std)]
     lower_band = [last_close] + [p * (1.0 - 1.96 * s) for p, s in zip(predicted_prices, hist_std)]
 

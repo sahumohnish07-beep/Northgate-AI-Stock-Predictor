@@ -103,6 +103,32 @@ def compute_bollinger_bands(
     )
 
 
+def compute_sma(series: pd.Series, period: int = 20) -> pd.Series:
+    """Calculates Simple Moving Average (SMA) for a given lookback window.
+
+    Args:
+        series: Price series (typically Close price).
+        period: Window length (default 20).
+
+    Returns:
+        pd.Series of SMA values.
+    """
+    return series.rolling(window=period).mean()
+
+
+def compute_ema(series: pd.Series, period: int = 20) -> pd.Series:
+    """Calculates Exponential Moving Average (EMA) for a given lookback span.
+
+    Args:
+        series: Price series (typically Close price).
+        period: Exponential span (default 20).
+
+    Returns:
+        pd.Series of EMA values.
+    """
+    return series.ewm(span=period, adjust=False).mean()
+
+
 def compute_moving_averages(
     series: pd.Series,
     windows: Optional[List[int]] = None,
@@ -121,8 +147,8 @@ def compute_moving_averages(
 
     ma_dict = {}
     for w in windows:
-        ma_dict[f"SMA_{w}"] = series.rolling(window=w).mean()
-        ma_dict[f"EMA_{w}"] = series.ewm(span=w, adjust=False).mean()
+        ma_dict[f"SMA_{w}"] = compute_sma(series, period=w)
+        ma_dict[f"EMA_{w}"] = compute_ema(series, period=w)
 
     return pd.DataFrame(ma_dict, index=series.index)
 
