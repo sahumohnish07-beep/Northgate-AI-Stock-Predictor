@@ -17,18 +17,19 @@ An enterprise-grade, end-to-end AI platform that predicts stock prices using Mac
 - [x] **Phase 1: Data Collection & EDA**
   - Built `src/data_loader.py` with `yfinance` to fetch 5 years of daily OHLCV data.
   - Default coverage for premier Indian equities: `RELIANCE.NS`, `TCS.NS`, `INFY.NS`, `HDFCBANK.NS`, `ITC.NS`.
-  - Missing data cleaning, error handling for delisted/invalid tickers, and raw CSV persistence in `data/raw/<ticker>.csv`.
-  - Comprehensive exploratory analysis notebook (`notebooks/01_eda.ipynb`) with price trajectories, return distributions, annualized volatilities, and correlation heatmaps.
-  - Automated test suite in `tests/test_data_loader.py`.
+  - Raw CSV persistence in `data/raw/<ticker>.csv` and automated EDA notebook (`notebooks/01_eda.ipynb`).
 - [x] **Phase 2: Feature Engineering & Baseline ML Models**
-  - Built `src/features.py`: RSI (14), MACD (line, signal, histogram), SMA & EMA (10, 20, 50), Bollinger Bands (upper, middle, lower, width), daily returns, rolling volatilities (10d, 20d), and lag features (1, 2, 3, 5 periods).
-  - Built `src/models.py`: Linear Regression, Random Forest, and XGBoost to predict next-day close.
-  - Strict chronological time-based train/test split (80% train, 20% test) with zero lookahead bias (Rule 7).
-  - Evaluated with RMSE, MAE, and MAPE metrics across all 5 tickers; results saved to `data/processed/baseline_results.csv`.
-  - Selected best model overall (Linear Regression with mean Test MAPE of 1.42%) and saved artifacts to `models/best_model.joblib`.
-  - Unit tests in `tests/test_features_and_models.py`.
-- [ ] **Phase 3: Deep Learning Time-Series Models**
-  - Sequential LSTM / GRU architectures for multi-horizon price forecasting.
+  - Built `src/features.py`: RSI (14), MACD, SMA/EMA (10, 20, 50), Bollinger Bands, returns, rolling volatilities, and lag features.
+  - Built `src/models.py`: Linear Regression, Random Forest, and XGBoost with chronological 80/20 train/test split (Rule 7).
+  - Evaluated with RMSE, MAE, and MAPE; baseline table saved to `data/processed/baseline_results.csv`.
+- [x] **Phase 3: Deep Learning (LSTM) Model**
+  - Built `src/lstm_model.py` with PyTorch: stacked LSTM network with 60-day historical window.
+  - Leak-free preprocessing: `MinMaxScaler` fitted **strictly on train set only**.
+  - `EarlyStopping` and `ModelCheckpoint` callbacks to prevent overfitting and capture optimal weights.
+  - High-resolution prediction plot saved to `data/processed/lstm_actual_vs_predicted.png`.
+  - Comprehensive model comparison table against Phase 2 baselines saved to `data/processed/model_comparison.csv`.
+  - Model weights saved to `models/lstm_model.pt` and fitted scaler saved to `models/scaler.pkl`.
+  - Unit tests added in `tests/test_lstm_model.py`.
 - [ ] **Phase 4: Financial News Sentiment Analysis (FinBERT)**
   - Financial headlines ingestion and FinBERT sentiment scoring.
 - [ ] **Phase 5: Portfolio Optimization & Recommendation Engine**
@@ -38,29 +39,18 @@ An enterprise-grade, end-to-end AI platform that predicts stock prices using Mac
 
 ---
 
-## 📊 Phase 2 Baseline Model Benchmark Results
+## 📊 Model Comparison Benchmark (RELIANCE.NS)
 
-Evaluated on 5 years of daily data using chronological 80/20 train/test split:
+Evaluated on 5 years of historical data using chronological 80/20 train/test split:
 
-| Ticker | Model | Train RMSE | Test RMSE | Test MAE | Test MAPE (%) |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| **RELIANCE.NS** | Linear Regression | 17.63 | **20.77** | **14.88** | **1.11%** |
-| RELIANCE.NS | Random Forest | 8.09 | 22.50 | 16.94 | 1.25% |
-| RELIANCE.NS | XGBoost | 9.25 | 23.36 | 17.73 | 1.32% |
-| **TCS.NS** | Linear Regression | 46.80 | **53.06** | **39.27** | **1.60%** |
-| TCS.NS | Random Forest | 21.65 | 548.68 | 466.32 | 20.38% |
-| TCS.NS | XGBoost | 25.00 | 596.56 | 511.36 | 22.30% |
-| **INFY.NS** | Linear Regression | 24.76 | **27.44** | **21.00** | **1.73%** |
-| INFY.NS | Random Forest | 11.57 | 129.12 | 98.83 | 8.90% |
-| INFY.NS | XGBoost | 13.20 | 129.52 | 100.24 | 9.00% |
-| **HDFCBANK.NS** | Linear Regression | 12.48 | 14.01 | 10.49 | 1.32% |
-| HDFCBANK.NS | Random Forest | 4.85 | **13.34** | **10.18** | **1.28%** |
-| HDFCBANK.NS | XGBoost | 5.65 | 14.39 | 11.37 | 1.43% |
-| **ITC.NS** | Linear Regression | 5.42 | **6.24** | **4.04** | **1.35%** |
-| ITC.NS | Random Forest | 2.06 | 18.18 | 16.13 | 5.49% |
-| ITC.NS | XGBoost | 2.70 | 11.42 | 9.51 | 3.19% |
+| Model Type | Architecture / Estimator | Test RMSE | Test MAE | Test MAPE (%) |
+| :--- | :--- | :---: | :---: | :---: |
+| **Baseline ML** | Linear Regression | 20.77 | 14.88 | 1.11% |
+| **Baseline ML** | Random Forest Regressor | 22.50 | 16.94 | 1.25% |
+| **Baseline ML** | XGBoost Regressor | 23.36 | 17.73 | 1.32% |
+| **Deep Learning** | **LSTM (60-Day Sequence Window)** | **30.42** | **23.68** | **1.75%** |
 
-*Overall best model across all tickers: **Linear Regression** (Mean Test MAPE: **1.42%**), saved to `models/best_model.joblib`.*
+*Artifacts: PyTorch model saved to `models/lstm_model.pt`, scaler saved to `models/scaler.pkl`, and comparison chart saved to `data/processed/lstm_actual_vs_predicted.png`.*
 
 ---
 
@@ -76,7 +66,12 @@ python src/data_loader.py
 python src/models.py
 ```
 
-### 3. Run Unit Tests
+### 3. Train & Evaluate 60-Day LSTM Model
+```bash
+python src/lstm_model.py RELIANCE.NS
+```
+
+### 4. Run All Unit Tests
 ```bash
 python -m unittest discover tests
 ```

@@ -218,3 +218,4 @@ def engineer_features(
     # Clean NaNs caused by moving windows and lags
     cleaned_df = data.dropna().copy()
     return cleaned_df
+

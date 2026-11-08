@@ -19,6 +19,7 @@ data/cache/
 # Model artifacts and serialized weights
 *.h5
 *.pkl
+!models/scaler.pkl
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
