@@ -244,11 +244,36 @@ st.caption(
 )
 
 # Load primary stock data
+df_stock = None
 try:
     with st.spinner(f"Loading market data for {selected_ticker}..."):
         df_stock = load_stock_df(selected_ticker)
+except FileNotFoundError:
+    st.warning(f"⚠️ **Market data for `{selected_ticker}` is not available in `data/raw/`.**")
+    st.info(
+        "Raw stock data is gitignored. Click below to download 5 years of daily market data "
+        "directly from Yahoo Finance, or run `python -m src.data_loader` in your terminal."
+    )
+    col_dl1, col_dl2 = st.columns(2)
+    with col_dl1:
+        if st.button(f"📥 Download {selected_ticker} Data", type="primary", use_container_width=True):
+            with st.spinner(f"Downloading historical data for {selected_ticker}..."):
+                from src.data_loader import download_ticker_data
+                download_ticker_data(selected_ticker)
+                st.cache_data.clear()
+                st.success(f"Downloaded {selected_ticker}! Reloading dashboard...")
+                st.rerun()
+    with col_dl2:
+        if st.button("📥 Download All 5 Stocks (Full Universe)", use_container_width=True):
+            with st.spinner("Downloading full stock universe (RELIANCE, TCS, INFY, HDFCBANK, ITC)..."):
+                from src.data_loader import download_multiple_tickers
+                download_multiple_tickers()
+                st.cache_data.clear()
+                st.success("Universe downloaded! Reloading dashboard...")
+                st.rerun()
+    st.stop()
 except Exception as e:
-    st.error(f"Failed to load market data for {selected_ticker}: {e}")
+    st.error(f"⚠️ Failed to load market data for {selected_ticker}: {e}")
     st.stop()
 
 
@@ -717,6 +742,16 @@ with tab_portfolio:
         st.markdown("##### Consolidated Cross-Profile Weight Matrix & Recommendations")
         st.dataframe(alloc_recs.style.format({"Mean_Weight": "{:.1%}", "Low_Risk_Weight": "{:.1%}", "Medium_Risk_Weight": "{:.1%}", "High_Risk_Weight": "{:.1%}"}), use_container_width=True)
 
+    except FileNotFoundError:
+        st.warning("⚠️ **Portfolio calculation requires raw historical data for all 5 default stocks.**")
+        st.info("Some stock data files are missing from `data/raw/`. Click below to download the complete universe.")
+        if st.button("📥 Download All 5 Stocks Universe", key="dl_portfolio_universe"):
+            with st.spinner("Downloading full stock universe (RELIANCE, TCS, INFY, HDFCBANK, ITC)..."):
+                from src.data_loader import download_multiple_tickers
+                download_multiple_tickers()
+                st.cache_data.clear()
+                st.success("Universe downloaded! Reloading...")
+                st.rerun()
     except Exception as e:
         st.error(f"Portfolio calculation error: {e}")
 
