@@ -1,0 +1,1 @@
+# Northgate-AI-Stock-Predictor
