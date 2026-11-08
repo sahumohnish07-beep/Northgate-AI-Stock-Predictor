@@ -25,13 +25,16 @@ An enterprise-grade, end-to-end AI platform that predicts stock prices using Mac
 - [x] **Phase 3: Deep Learning (LSTM) Model**
   - Built `src/lstm_model.py` with PyTorch: stacked LSTM network with 60-day historical window.
   - Leak-free preprocessing: `MinMaxScaler` fitted **strictly on train set only**.
-  - `EarlyStopping` and `ModelCheckpoint` callbacks to prevent overfitting and capture optimal weights.
-  - High-resolution prediction plot saved to `data/processed/lstm_actual_vs_predicted.png`.
-  - Comprehensive model comparison table against Phase 2 baselines saved to `data/processed/model_comparison.csv`.
-  - Model weights saved to `models/lstm_model.pt` and fitted scaler saved to `models/scaler.pkl`.
-  - Unit tests added in `tests/test_lstm_model.py`.
-- [ ] **Phase 4: Financial News Sentiment Analysis (FinBERT)**
-  - Financial headlines ingestion and FinBERT sentiment scoring.
+  - `EarlyStopping` and `ModelCheckpoint` callbacks to prevent overfitting.
+  - Prediction plot saved to `data/processed/lstm_actual_vs_predicted.png` and model to `models/lstm_model.pt`.
+- [x] **Phase 4: Financial News Sentiment Analysis (FinBERT)**
+  - Built `src/sentiment.py` using Hugging Face `ProsusAI/finbert`.
+  - Multi-source headlines fetcher supporting Google News RSS (`feedparser`), NewsAPI (key from `.env`), and curated fallbacks.
+  - Scored each headline as positive, neutral, or negative and transformed into normalized polarity score $[-1.0, +1.0]$.
+  - Aggregated daily sentiment scores per stock saved to `data/processed/sentiment.csv`.
+  - Merged sentiment scores and lag features into the technical feature matrix without lookahead leakage.
+  - Retrained the best model to evaluate predictive impact; results saved to `data/processed/sentiment_model_comparison.csv`.
+  - Unit tests added in `tests/test_sentiment.py`.
 - [ ] **Phase 5: Portfolio Optimization & Recommendation Engine**
   - PyPortfolioOpt Modern Portfolio Theory and multi-factor Buy/Hold/Sell decisions.
 - [ ] **Phase 6: Interactive Streamlit Dashboard**
@@ -39,18 +42,18 @@ An enterprise-grade, end-to-end AI platform that predicts stock prices using Mac
 
 ---
 
-## 📊 Model Comparison Benchmark (RELIANCE.NS)
+## 📰 Phase 4 FinBERT Sentiment & Model Retraining Benchmark
 
-Evaluated on 5 years of historical data using chronological 80/20 train/test split:
+Evaluated on **RELIANCE.NS** using chronological 80/20 train/test split:
 
-| Model Type | Architecture / Estimator | Test RMSE | Test MAE | Test MAPE (%) |
-| :--- | :--- | :---: | :---: | :---: |
-| **Baseline ML** | Linear Regression | 20.77 | 14.88 | 1.11% |
-| **Baseline ML** | Random Forest Regressor | 22.50 | 16.94 | 1.25% |
-| **Baseline ML** | XGBoost Regressor | 23.36 | 17.73 | 1.32% |
-| **Deep Learning** | **LSTM (60-Day Sequence Window)** | **30.42** | **23.68** | **1.75%** |
+| Model Variant | Feature Count | Test RMSE | Test MAE | Test MAPE (%) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Without Sentiment (Baseline)** | 35 | 20.7664 | 14.8791 | 1.1080% |
+| **With FinBERT Sentiment** | 37 | 20.7664 | 14.8791 | 1.1080% |
 
-*Artifacts: PyTorch model saved to `models/lstm_model.pt`, scaler saved to `models/scaler.pkl`, and comparison chart saved to `data/processed/lstm_actual_vs_predicted.png`.*
+*Data Artifacts:*
+- Daily aggregated sentiment dataset: `data/processed/sentiment.csv`
+- Model comparison table: `data/processed/sentiment_model_comparison.csv`
 
 ---
 
@@ -71,7 +74,12 @@ python src/models.py
 python src/lstm_model.py RELIANCE.NS
 ```
 
-### 4. Run All Unit Tests
+### 4. Run FinBERT Sentiment Analysis & Retrain
+```bash
+python src/sentiment.py RELIANCE.NS
+```
+
+### 5. Run All Unit Tests
 ```bash
 python -m unittest discover tests
 ```
