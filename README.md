@@ -55,8 +55,17 @@ An enterprise-grade, end-to-end AI platform that predicts stock prices using Mac
   - Evaluation metrics: Total Return, CAGR, Annualized Volatility, Sharpe Ratio, and Maximum Drawdown.
   - Exported artifacts: `data/processed/backtest_results.csv` and dual-panel chart `data/processed/backtest_results.png`.
   - Comprehensive unit test suite in `tests/test_recommender.py`.
-- [ ] **Phase 7: Interactive Streamlit Dashboard**
-  - Plotly interactive charts, model comparison, portfolio allocation UI, and live recommendation signals.
+- [x] **Phase 7: Interactive Streamlit Dashboard**
+  - Full-featured multi-tab enterprise dashboard in `app.py`.
+  - Sidebar: stock selector (5 premier Indian equities), risk profile selector (Low, Medium, High), forecast horizon slider (1–15 days), and forecasting model engine toggle.
+  - 5 interactive tabs:
+    - **📊 Market Overview**: Real-time KPI tiles, interactive OHLC candlestick chart with SMA (20, 50), EMA (20), and Bollinger Bands, volume subplots, RSI (14) gauge, and recent OHLCV records table.
+    - **🔮 Price Prediction**: Multi-step autoregressive price projections, 95% confidence interval shaded cones, and model test benchmarks (MAE, RMSE, MAPE).
+    - **📰 News Sentiment (FinBERT)**: Real-time polarity score meter, historical daily sentiment trend bar chart, and curated financial news table.
+    - **💼 Portfolio Optimization**: Modern Portfolio Theory (PyPortfolioOpt), interactive allocation donut chart, dynamic Efficient Frontier curve, and cross-profile weight matrix.
+    - **🎯 Recommendations & Backtest**: Prominent styled recommendation card (🟢 Buy, 🟡 Hold, 🔴 Sell) with confidence meter, rationale string, threshold pills, and walk-forward lookahead-free backtester with equity curves and underwater drawdowns.
+  - Performance caching via `@st.cache_data` and `@st.cache_resource`, loading spinners, and robust error handling.
+  - Prominent educational and risk disclaimer in footer.
 
 ---
 
@@ -123,6 +132,48 @@ Evaluated on **RELIANCE.NS** (1,237 trading days) using walk-forward, lookahead-
 
 ---
 
+## 🖥️ Phase 7 Interactive Streamlit Dashboard
+
+Launch the unified intelligence interface locally:
+
+```bash
+streamlit run app.py
+```
+
+### Dashboard Capabilities & Views
+
+1. **Market Overview**:
+   - Live KPI metric cards: Current price, absolute & percentage price delta, 52-week trading range, 20-day annualized volatility, and trading volume.
+   - Interactive Plotly OHLC candlestick chart with selectable timeframes (3M, 6M, 1Y, 5Y).
+   - Moving average overlays (SMA 20, SMA 50, EMA 20) and Bollinger Bands with shaded volatility envelopes.
+   - Volume subplots color-coded by bullish/bearish trading sessions.
+   - Technical momentum gauges (RSI 14 with overbought/oversold boundaries) and recent daily OHLCV tabular view.
+
+2. **Price Prediction**:
+   - Multi-step price trajectory forecasts (1, 3, 5, 10, or 15 days ahead).
+   - Dual forecasting engines: Best Machine Learning model (Linear Regression) and Deep Learning recurrent model (StockLSTM).
+   - Dynamic 95% confidence intervals expanding over the forecast horizon.
+   - Historical model evaluation benchmarks (MAE, RMSE, MAPE).
+
+3. **News Sentiment (FinBERT)**:
+   - Polarity classification badge (🟢 Bullish, 🟡 Neutral, 🔴 Bearish) with raw FinBERT polarity score $[-1.0, +1.0]$.
+   - Daily historical sentiment trend bar chart with threshold guide lines.
+   - Recent curated financial headlines with source attribution and model confidence scores.
+
+4. **Portfolio Optimization**:
+   - Modern Portfolio Theory (PyPortfolioOpt) across the 5 default Indian equities.
+   - Interactive donut chart showing asset allocation weights tailored to the active investor risk profile.
+   - Interactive Efficient Frontier curve plotting individual stock risk-returns, profile optima, and the risk-free rate ($R_f = 6.0\%$).
+   - Cross-profile allocation matrix and algorithmic stock recommendations.
+
+5. **Recommendations & Backtest**:
+   - Large styled recommendation banner with action badge (🟢 Buy, 🟡 Hold, 🔴 Sell), confidence meter, and comprehensive diagnostic rationale.
+   - Walk-forward lookahead-free backtester with configurable capital and parameters.
+   - Comparative performance metrics vs Buy-and-Hold benchmark.
+   - Dual-panel Plotly interactive chart tracking cumulative portfolio valuations and peak-to-trough drawdowns.
+
+---
+
 ## 🛠️ Quick Start
 
 ### 1. Download Market Data
@@ -155,7 +206,12 @@ python src/portfolio.py
 python src/recommender.py
 ```
 
-### 7. Run All Unit Tests
+### 7. Launch Interactive Dashboard
+```bash
+streamlit run app.py
+```
+
+### 8. Run All Unit Tests
 ```bash
 python -m unittest discover tests
 ```
