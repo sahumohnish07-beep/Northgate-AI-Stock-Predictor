@@ -27,7 +27,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from src.data_loader import DEFAULT_TICKERS, load_raw_data
+from src.data_loader import DEFAULT_TICKERS
 from src.features import (
     compute_bollinger_bands,
     compute_ema,
@@ -56,37 +56,37 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS styling for premium look & feel
+# Custom CSS styling for premium look & feel in dark theme
 st.markdown(
     """
     <style>
     .metric-card {
-        background-color: #f8f9fa;
+        background-color: #1e2129;
         border-radius: 8px;
         padding: 16px;
         border-left: 4px solid #1f77b4;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     .recommendation-buy {
-        background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        background: linear-gradient(135deg, #132e18 0%, #0d2211 100%);
         border: 2px solid #2e7d32;
         border-radius: 12px;
         padding: 24px;
-        color: #1b5e20;
+        color: #a5d6a7;
     }
     .recommendation-sell {
-        background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+        background: linear-gradient(135deg, #331214 0%, #220b0c 100%);
         border: 2px solid #c62828;
         border-radius: 12px;
         padding: 24px;
-        color: #b71c1c;
+        color: #ef9a9a;
     }
     .recommendation-hold {
-        background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+        background: linear-gradient(135deg, #33260e 0%, #221808 100%);
         border: 2px solid #f57f17;
         border-radius: 12px;
         padding: 24px;
-        color: #e65100;
+        color: #ffe082;
     }
     .badge-pill {
         display: inline-block;
@@ -95,14 +95,16 @@ st.markdown(
         font-size: 0.85em;
         font-weight: 600;
         margin-right: 6px;
+        background: rgba(255, 255, 255, 0.12) !important;
+        color: inherit;
     }
     .footer-text {
         text-align: center;
-        color: #7f8c8d;
+        color: #9e9e9e;
         font-size: 0.85em;
         margin-top: 50px;
         padding-top: 20px;
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid #333333;
     }
     </style>
     """,
@@ -115,17 +117,46 @@ st.markdown(
 # ==============================================================================
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=86400)
 def load_stock_df(ticker: str) -> pd.DataFrame:
-    """Load and format historical daily stock prices."""
-    df = load_raw_data(ticker)
+    """Load and format historical daily stock prices.
+
+    If the raw CSV is missing from data/raw/, automatically downloads 5 years
+    of daily OHLCV data using yfinance via src.data_loader, creating the
+    directory if needed, and caches the result for 24 hours.
+    """
+    clean_ticker = ticker.strip().upper()
+    raw_dir = ROOT_DIR / "data" / "raw"
+    csv_path = raw_dir / f"{clean_ticker}.csv"
+
+    if not csv_path.exists():
+        raw_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            from src.data_loader import download_ticker_data
+
+            dl_df = download_ticker_data(clean_ticker, output_dir=raw_dir)
+            if dl_df is None or not csv_path.exists():
+                st.error(
+                    f"⚠️ Could not download market data for {clean_ticker} from Yahoo Finance."
+                )
+                return pd.DataFrame()
+        except Exception as e:
+            st.error(f"⚠️ Auto-download failed for {clean_ticker}: {e}")
+            return pd.DataFrame()
+
+    try:
+        df = pd.read_csv(csv_path, index_col="Date", parse_dates=True)
+    except Exception as e:
+        st.error(f"⚠️ Failed reading CSV data for {clean_ticker}: {e}")
+        return pd.DataFrame()
+
     if not isinstance(df.index, pd.DatetimeIndex):
         df.index = pd.to_datetime(df.index)
     df = df.sort_index()
     return df[~df.index.duplicated(keep="first")]
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=86400)
 def load_processed_sentiment() -> pd.DataFrame:
     """Load daily sentiment aggregation dataset."""
     sent_path = ROOT_DIR / "data" / "processed" / "sentiment.csv"
@@ -173,7 +204,7 @@ def load_lstm_weights() -> Tuple[Optional[StockLSTM], Optional[Any]]:
     return None, None
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=86400)
 def compute_portfolio_data() -> (
     Tuple[pd.Series, pd.DataFrame, Dict[str, Any], pd.DataFrame]
 ):
@@ -255,44 +286,15 @@ df_stock = None
 try:
     with st.spinner(f"Loading market data for {selected_ticker}..."):
         df_stock = load_stock_df(selected_ticker)
-except FileNotFoundError:
-    st.warning(
-        f"⚠️ **Market data for `{selected_ticker}` is not available in `data/raw/`.**"
-    )
-    st.info(
-        "Raw stock data is gitignored. Click below to download 5 years of daily market data "
-        "directly from Yahoo Finance, or run `python -m src.data_loader` in your terminal."
-    )
-    col_dl1, col_dl2 = st.columns(2)
-    with col_dl1:
-        if st.button(
-            f"📥 Download {selected_ticker} Data",
-            type="primary",
-            use_container_width=True,
-        ):
-            with st.spinner(f"Downloading historical data for {selected_ticker}..."):
-                from src.data_loader import download_ticker_data
-
-                download_ticker_data(selected_ticker)
-                st.cache_data.clear()
-                st.success(f"Downloaded {selected_ticker}! Reloading dashboard...")
-                st.rerun()
-    with col_dl2:
-        if st.button(
-            "📥 Download All 5 Stocks (Full Universe)", use_container_width=True
-        ):
-            with st.spinner(
-                "Downloading full stock universe (RELIANCE, TCS, INFY, HDFCBANK, ITC)..."
-            ):
-                from src.data_loader import download_multiple_tickers
-
-                download_multiple_tickers()
-                st.cache_data.clear()
-                st.success("Universe downloaded! Reloading dashboard...")
-                st.rerun()
-    st.stop()
 except Exception as e:
     st.error(f"⚠️ Failed to load market data for {selected_ticker}: {e}")
+    st.stop()
+
+if df_stock is None or df_stock.empty:
+    st.error(
+        f"⚠️ Market data for `{selected_ticker}` is unavailable. "
+        "Please check your network connection or try another ticker."
+    )
     st.stop()
 
 
@@ -931,25 +933,8 @@ with tab_portfolio:
             use_container_width=True,
         )
 
-    except FileNotFoundError:
-        st.warning(
-            "⚠️ **Portfolio calculation requires raw historical data for all 5 default stocks.**"
-        )
-        st.info(
-            "Some stock data files are missing from `data/raw/`. Click below to download the complete universe."
-        )
-        if st.button("📥 Download All 5 Stocks Universe", key="dl_portfolio_universe"):
-            with st.spinner(
-                "Downloading full stock universe (RELIANCE, TCS, INFY, HDFCBANK, ITC)..."
-            ):
-                from src.data_loader import download_multiple_tickers
-
-                download_multiple_tickers()
-                st.cache_data.clear()
-                st.success("Universe downloaded! Reloading...")
-                st.rerun()
     except Exception as e:
-        st.error(f"Portfolio calculation error: {e}")
+        st.error(f"⚠️ Portfolio calculation error: {e}")
 
 
 # ==============================================================================
@@ -989,7 +974,7 @@ with tab_recommendation:
                 <span style="font-size: 1.2em; font-weight: bold;">Confidence: {confidence:.1%}</span>
             </div>
             <p style="margin-top: 12px; font-size: 1.1em; line-height: 1.5;">{reason_str}</p>
-            <hr style="border: none; border-top: 1px solid rgba(0,0,0,0.15); margin: 12px 0;">
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.2); margin: 12px 0;">
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <span class="badge-pill" style="background: rgba(0,0,0,0.08);">Predicted 5D: {projected_return:+.2%}</span>
                 <span class="badge-pill" style="background: rgba(0,0,0,0.08);">FinBERT Polarity: {latest_score:+.2f}</span>

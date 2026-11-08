@@ -12,10 +12,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -548,6 +544,11 @@ def plot_backtest_results(
         else PROCESSED_DATA_DIR / "backtest_results.png"
     )
     dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
 
     equity_df = backtest_results["equity_curve"]
     strat_m = backtest_results["strategy_metrics"]

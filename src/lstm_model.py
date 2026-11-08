@@ -18,7 +18,6 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
@@ -374,6 +373,11 @@ def plot_predictions(
         ticker: Ticker symbol.
         output_path: File path to save the chart.
     """
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
     plt.figure(figsize=(14, 6))
     plt.plot(
         dates, actual, label=f"Actual {ticker} Close", color="#1f77b4", linewidth=2.0

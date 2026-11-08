@@ -11,14 +11,19 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pypfopt.plotting as pplot
 from pypfopt import EfficientFrontier, expected_returns, risk_models
+
+try:
+    import streamlit as st
+
+    cache_data_fn = st.cache_data(ttl=86400)
+except Exception:
+
+    def cache_data_fn(func):
+        return func
+
 
 # Ensure project root is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -32,6 +37,7 @@ DEFAULT_RISK_FREE_RATE = 0.06  # 6.0% benchmark for Indian sovereign 10Y G-Sec
 DEFAULT_WEIGHT_CAP = 0.40  # 40% maximum allocation for high-risk profile
 
 
+@cache_data_fn
 def load_historical_prices(
     tickers: Optional[List[str]] = None,
     raw_dir: Optional[Union[str, Path]] = None,
@@ -39,6 +45,7 @@ def load_historical_prices(
 ) -> pd.DataFrame:
     """
     Load historical closing prices for a list of tickers from data/raw/ CSV files.
+    If a ticker CSV is missing, automatically downloads it from Yahoo Finance.
 
     Parameters
     ----------
@@ -57,21 +64,31 @@ def load_historical_prices(
     Raises
     ------
     FileNotFoundError
-        If data/raw CSV file does not exist for any requested ticker.
+        If data/raw CSV file does not exist and download fails for any requested ticker.
     ValueError
         If price_col is missing or merged data contains fewer than 30 observations.
     """
     selected_tickers = tickers or DEFAULT_TICKERS
     data_dir = Path(raw_dir) if raw_dir else RAW_DATA_DIR
+    data_dir.mkdir(parents=True, exist_ok=True)
 
     series_dict: Dict[str, pd.Series] = {}
 
     for ticker in selected_tickers:
         file_path = data_dir / f"{ticker}.csv"
         if not file_path.exists():
+            try:
+                from src.data_loader import download_ticker_data
+
+                download_ticker_data(ticker, output_dir=data_dir)
+            except Exception as dl_err:
+                raise FileNotFoundError(
+                    f"Historical data file not found and auto-download failed for '{ticker}': {dl_err}"
+                ) from dl_err
+
+        if not file_path.exists():
             raise FileNotFoundError(
-                f"Historical data file not found: {file_path}. "
-                f"Please run src/data_loader.py to collect market data."
+                f"Historical data file not found for '{ticker}' at {file_path}."
             )
 
         df = pd.read_csv(file_path, parse_dates=["Date"])
@@ -423,6 +440,12 @@ def plot_efficient_frontier_and_profiles(
         profile_results = optimize_all_profiles(
             mu=mu, cov_matrix=cov_matrix, risk_free_rate=risk_free_rate
         )
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import pypfopt.plotting as pplot
 
     fig, ax = plt.subplots(figsize=(11, 7))
 

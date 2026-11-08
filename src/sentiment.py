@@ -23,13 +23,11 @@ if str(ROOT_DIR) not in sys.path:
 
 load_dotenv()
 
-import feedparser
 import pandas as pd
 import requests
 import torch
 import torch.nn.functional as F
 from sklearn.linear_model import LinearRegression
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from src.data_loader import DEFAULT_TICKERS, load_raw_data
 from src.features import engineer_features
@@ -69,6 +67,15 @@ class FinBERTSentimentAnalyzer:
             "cuda" if torch.cuda.is_available() else "cpu"
         )
         logger.info(f"Loading FinBERT model '{model_name}' on {self.device}...")
+        try:
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
+        except ImportError as exc:
+            raise ImportError(
+                "transformers is not installed. To run real-time FinBERT sentiment scoring, "
+                "install transformers via `pip install transformers` or use pre-computed sentiment in "
+                "data/processed/sentiment.csv."
+            ) from exc
+
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(
             self.device
@@ -262,6 +269,14 @@ def fetch_google_news_rss(query: str, max_articles: int = 15) -> List[Dict[str, 
     logger.info(f"Querying Google News RSS for: {query}")
 
     try:
+        try:
+            import feedparser
+        except ImportError:
+            logger.warning(
+                "feedparser is not installed. To fetch Google News RSS headlines, install via `pip install feedparser`."
+            )
+            return []
+
         feed = feedparser.parse(rss_url)
         articles: List[Dict[str, str]] = []
 

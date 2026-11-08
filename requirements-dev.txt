@@ -1,0 +1,10 @@
+-r requirements.txt
+transformers
+feedparser
+cvxpy
+seaborn
+matplotlib
+pytest
+pytest-asyncio
+black
+ruff

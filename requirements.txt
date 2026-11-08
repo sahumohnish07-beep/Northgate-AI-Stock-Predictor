@@ -1,36 +1,12 @@
-# Northgate AI Stock Predictor - Frozen Production Dependencies
-
-# Data Handling & Ingestion
-numpy==2.5.1
-pandas==3.0.3
-yfinance==1.8.0
-python-dotenv==1.2.2
-feedparser==6.0.14
-requests==2.34.2
-
-# Visualization & Charting
-matplotlib==3.11.0
-seaborn==0.13.2
-plotly==6.9.0
-
-# Machine Learning & Modeling
-scikit-learn==1.9.0
-xgboost==3.4.1
-joblib==1.5.3
-
-# Deep Learning & FinBERT NLP
-torch==2.15.0
-transformers==5.22.2
-
-# Portfolio Optimization & Convex Solvers
-PyPortfolioOpt==1.6.0
-cvxpy==1.9.3
-
-# Interactive Dashboard Framework
-streamlit==1.60.0
-
-# Code Quality & Testing Suite
-pytest==9.1.1
-pytest-asyncio==1.4.0
-black==26.10.1
-ruff==0.17.4
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+numpy
+pandas
+yfinance
+scikit-learn
+xgboost
+joblib
+plotly
+streamlit
+PyPortfolioOpt
+python-dotenv

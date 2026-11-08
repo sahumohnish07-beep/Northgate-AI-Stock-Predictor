@@ -20,6 +20,11 @@ data/cache/
 *.h5
 *.pkl
 !models/scaler.pkl
+!models/best_model.joblib
+!models/lstm_model.pt
+!models/best_model_metadata.json
+!data/processed/*.csv
+!data/processed/*.png
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/

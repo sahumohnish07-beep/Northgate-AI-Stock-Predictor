@@ -31,6 +31,7 @@ An enterprise-grade, end-to-end artificial intelligence platform engineered for 
 - [Screenshots](#-screenshots)
 - [Installation](#-installation)
 - [Usage & Execution](#-usage--execution)
+- [Deployment](#-deployment-streamlit-community-cloud)
 - [Testing & Quality Assurance](#-testing--quality-assurance)
 - [Limitations](#-limitations)
 - [License](#-license)
@@ -322,6 +323,27 @@ python -m src.portfolio
 # 6. Execute algorithmic recommender and run walk-forward backtest
 python -m src.recommender
 ```
+
+---
+
+## 🌐 Deployment (Streamlit Community Cloud)
+
+The application is fully prepared and optimized for one-click deployment on **Streamlit Community Cloud**:
+
+- **Live Application URL**: [https://northgate-ai-stock-predictor.streamlit.app](https://northgate-ai-stock-predictor.streamlit.app) *(Deploying / Live)*
+- **Runtime Environment**: Python 3.11 (`runtime.txt`)
+- **Theme & Server Configuration**: Native dark theme with headless execution (`.streamlit/config.toml`)
+- **Automatic Data Provisioning**: `data/raw/` is auto-populated on first launch via `yfinance` caching with `@st.cache_data(ttl=86400)`. Zero manual file upload required.
+- **Lightweight Dependencies**: Production `requirements.txt` stripped to runtime essentials with CPU-only PyTorch wheel and lazy-loaded NLP/plotting utilities.
+
+### Deploying Your Own Instance
+1. Fork or clone this repository to your GitHub account.
+2. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/).
+3. Click **"New app"** and select your repository branch (`main`).
+4. Configure deployment settings:
+   - **Main file path**: `app.py`
+   - **Python version**: `3.11`
+5. Click **"Deploy!"** — the application will automatically install dependencies, self-provision market data, and launch.
 
 ---
 
