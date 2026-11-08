@@ -246,3 +246,4 @@ class StockDataFetcher:
         except Exception as e:
             logger.warning(f"Could not retrieve extended info for {clean_symbol}: {e}")
             return {"symbol": clean_symbol, "shortName": clean_symbol}
+

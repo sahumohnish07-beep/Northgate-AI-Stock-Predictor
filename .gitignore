@@ -1,27 +1,27 @@
-# Python bytecode and caches
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.pytest_cache/
-.coverage
-htmlcov/
 
-# Environments
+# Environment variables
 .env
 .env.local
-.venv/
-env/
-venv/
-ENV/
 
-# Data and Cache
-data/cache/
+# Data
 data/raw/
-*.log
+data/cache/
+
+# Model artifacts and serialized weights
+*.h5
+*.pkl
 
 # Jupyter Notebook checkpoints
-.ipynb_checkpoints
+.ipynb_checkpoints/
 
 # IDE and OS
 .vscode/

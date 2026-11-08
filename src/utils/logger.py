@@ -30,3 +30,4 @@ def get_logger(name: str = "northgate_ai", level: Optional[int] = None) -> loggi
         logger.propagate = False
 
     return logger
+

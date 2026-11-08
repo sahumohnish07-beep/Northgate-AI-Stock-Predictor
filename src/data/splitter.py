@@ -204,3 +204,4 @@ class TimeSeriesSplitter:
             # Ensure chronological order
             assert train_fold.index.max() < test_fold.index.min(), "Leakage in walk-forward fold"
             yield train_fold, test_fold
+
