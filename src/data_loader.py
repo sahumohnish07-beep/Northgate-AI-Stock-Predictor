@@ -5,10 +5,11 @@ Fetches 5 years of daily OHLCV historical market data for Indian equities
 and persists cleaned datasets to data/raw/<ticker>.csv.
 """
 
-from pathlib import Path
-from typing import Dict, List, Optional, Union
 import logging
 import sys
+from pathlib import Path
+from typing import Dict, List, Optional, Union
+
 import pandas as pd
 import yfinance as yf
 
@@ -81,7 +82,9 @@ def download_ticker_data(
         required_cols = ["Open", "High", "Low", "Close", "Volume"]
         for col in required_cols:
             if col not in df.columns:
-                logger.error(f"Missing required OHLCV column '{col}' for {clean_ticker}.")
+                logger.error(
+                    f"Missing required OHLCV column '{col}' for {clean_ticker}."
+                )
                 return None
 
         # Fallback for Adj Close if not provided
@@ -98,7 +101,9 @@ def download_ticker_data(
 
         dropped_rows = initial_len - len(df)
         if dropped_rows > 0:
-            logger.warning(f"Handled missing data for {clean_ticker}: removed {dropped_rows} bad/empty rows.")
+            logger.warning(
+                f"Handled missing data for {clean_ticker}: removed {dropped_rows} bad/empty rows."
+            )
 
         # Compute basic return metric for convenience
         df["Daily_Return"] = df["Close"].pct_change().fillna(0.0)
@@ -112,7 +117,10 @@ def download_ticker_data(
         return df
 
     except Exception as exc:
-        logger.error(f"Failed to download data for ticker '{clean_ticker}': {exc}", exc_info=False)
+        logger.error(
+            f"Failed to download data for ticker '{clean_ticker}': {exc}",
+            exc_info=False,
+        )
         return None
 
 
@@ -136,20 +144,28 @@ def download_multiple_tickers(
     tickers_to_fetch = tickers or DEFAULT_TICKERS
     downloaded_data: Dict[str, pd.DataFrame] = {}
 
-    logger.info(f"Starting batch download for {len(tickers_to_fetch)} tickers: {tickers_to_fetch}")
+    logger.info(
+        f"Starting batch download for {len(tickers_to_fetch)} tickers: {tickers_to_fetch}"
+    )
 
     for ticker in tickers_to_fetch:
-        df = download_ticker_data(ticker, period=period, interval=interval, output_dir=output_dir)
+        df = download_ticker_data(
+            ticker, period=period, interval=interval, output_dir=output_dir
+        )
         if df is not None:
             downloaded_data[ticker.upper()] = df
         else:
             logger.warning(f"Skipping failed ticker: {ticker}")
 
-    logger.info(f"Batch download complete. Successfully downloaded {len(downloaded_data)}/{len(tickers_to_fetch)} tickers.")
+    logger.info(
+        f"Batch download complete. Successfully downloaded {len(downloaded_data)}/{len(tickers_to_fetch)} tickers."
+    )
     return downloaded_data
 
 
-def load_raw_data(ticker: str, input_dir: Union[str, Path] = DEFAULT_OUTPUT_DIR) -> pd.DataFrame:
+def load_raw_data(
+    ticker: str, input_dir: Union[str, Path] = DEFAULT_OUTPUT_DIR
+) -> pd.DataFrame:
     """Loads a previously downloaded raw ticker CSV into a clean DataFrame.
 
     Args:

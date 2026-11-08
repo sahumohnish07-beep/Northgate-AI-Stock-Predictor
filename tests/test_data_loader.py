@@ -3,6 +3,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+
 import pandas as pd
 
 from src.data_loader import (
@@ -36,8 +37,12 @@ class TestDataLoader(unittest.TestCase):
 
         self.assertIsNotNone(df, "Downloaded DataFrame should not be None.")
         self.assertFalse(df.empty, "DataFrame should contain records.")
-        self.assertIsInstance(df.index, pd.DatetimeIndex, "Index must be DatetimeIndex.")
-        self.assertTrue(df.index.is_monotonic_increasing, "Data must be sorted chronologically.")
+        self.assertIsInstance(
+            df.index, pd.DatetimeIndex, "Index must be DatetimeIndex."
+        )
+        self.assertTrue(
+            df.index.is_monotonic_increasing, "Data must be sorted chronologically."
+        )
 
         # Check required columns
         for col in ["Open", "High", "Low", "Close", "Volume", "Daily_Return"]:
@@ -45,11 +50,15 @@ class TestDataLoader(unittest.TestCase):
 
         # Verify physical file existence
         target_csv = self.output_dir / f"{test_ticker}.csv"
-        self.assertTrue(target_csv.exists(), f"File {target_csv} was not saved on disk.")
+        self.assertTrue(
+            target_csv.exists(), f"File {target_csv} was not saved on disk."
+        )
 
         # Verify load_raw_data loads the saved CSV
         loaded_df = load_raw_data(ticker=test_ticker, input_dir=self.output_dir)
-        self.assertEqual(len(df), len(loaded_df), "Loaded rows should match downloaded rows.")
+        self.assertEqual(
+            len(df), len(loaded_df), "Loaded rows should match downloaded rows."
+        )
         pd.testing.assert_frame_equal(df, loaded_df, check_index_type=False)
 
     def test_default_tickers_list(self):

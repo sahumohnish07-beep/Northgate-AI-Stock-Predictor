@@ -7,19 +7,18 @@ risk profiles (Low Risk: Minimum Volatility, Medium Risk: Maximum Sharpe Ratio,
 and High Risk: Maximum Return with single-asset weight cap).
 """
 
-from collections import OrderedDict
-import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from pypfopt import EfficientFrontier, expected_returns, risk_models
 import pypfopt.plotting as pplot
+from pypfopt import EfficientFrontier, expected_returns, risk_models
 
 # Ensure project root is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -30,7 +29,7 @@ RAW_DATA_DIR = ROOT_DIR / "data" / "raw"
 PROCESSED_DATA_DIR = ROOT_DIR / "data" / "processed"
 DEFAULT_TICKERS = ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ITC.NS"]
 DEFAULT_RISK_FREE_RATE = 0.06  # 6.0% benchmark for Indian sovereign 10Y G-Sec
-DEFAULT_WEIGHT_CAP = 0.40       # 40% maximum allocation for high-risk profile
+DEFAULT_WEIGHT_CAP = 0.40  # 40% maximum allocation for high-risk profile
 
 
 def load_historical_prices(
@@ -122,7 +121,9 @@ def compute_expected_returns_and_covariance(
         Tuple of (expected_returns_vector, covariance_matrix).
     """
     if prices_df.empty or len(prices_df.columns) < 2:
-        raise ValueError("prices_df must contain at least 2 tickers and non-empty rows.")
+        raise ValueError(
+            "prices_df must contain at least 2 tickers and non-empty rows."
+        )
 
     # Calculate expected returns
     if return_method == "ema":
@@ -530,7 +531,9 @@ def main() -> None:
     mu, cov_matrix = compute_expected_returns_and_covariance(prices)
     for ticker in mu.index:
         vol = np.sqrt(cov_matrix.loc[ticker, ticker])
-        print(f"  {ticker:12s} | Exp Return: {mu[ticker]:+7.2%} | Annual Vol: {vol:6.2%}")
+        print(
+            f"  {ticker:12s} | Exp Return: {mu[ticker]:+7.2%} | Annual Vol: {vol:6.2%}"
+        )
 
     print("\n[3/5] Optimizing portfolios across risk profiles...")
     profile_results = optimize_all_profiles(
@@ -552,7 +555,7 @@ def main() -> None:
             print(f"    {t:12s}: {w:6.2%}")
 
     print("\n[4/5] Exporting allocation metrics and recommendations...")
-    alloc_df = export_portfolio_allocations(profile_results)
+    export_portfolio_allocations(profile_results)
     rec_df = generate_recommendations(profile_results)
     print(f"  Saved allocations to: {PROCESSED_DATA_DIR / 'portfolio_allocations.csv'}")
     print("\nAlgorithmic Stock Allocations & Recommendations:")
@@ -574,4 +577,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

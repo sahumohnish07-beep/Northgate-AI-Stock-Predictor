@@ -7,11 +7,11 @@ includes EarlyStopping and ModelCheckpoint, evaluates with RMSE, MAE, MAPE,
 plots predictions, and saves artifacts to models/ and data/processed/.
 """
 
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 import logging
 import pickle
 import sys
+from pathlib import Path
+from typing import Dict, Optional, Tuple
 
 # Ensure root directory is on sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -21,13 +21,13 @@ if str(ROOT_DIR) not in sys.path:
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.preprocessing import MinMaxScaler
 import torch
 import torch.nn as nn
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, TensorDataset
 
-from src.data_loader import DEFAULT_TICKERS, load_raw_data
+from src.data_loader import load_raw_data
 
 # Logging configuration
 logging.basicConfig(
@@ -136,15 +136,21 @@ class EarlyStoppingAndCheckpoint:
         if val_loss < self.best_loss - self.min_delta:
             self.best_loss = val_loss
             self.counter = 0
-            self.best_state_dict = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+            self.best_state_dict = {
+                k: v.cpu().clone() for k, v in model.state_dict().items()
+            }
             torch.save(self.best_state_dict, self.checkpoint_path)
-            logger.info(f"ModelCheckpoint: Saved new best model to {self.checkpoint_path} (val_loss: {val_loss:.6f})")
+            logger.info(
+                f"ModelCheckpoint: Saved new best model to {self.checkpoint_path} (val_loss: {val_loss:.6f})"
+            )
             return True
         else:
             self.counter += 1
             if self.counter >= self.patience:
                 self.early_stop = True
-                logger.info(f"EarlyStopping: Triggered after {self.patience} epochs without improvement.")
+                logger.info(
+                    f"EarlyStopping: Triggered after {self.patience} epochs without improvement."
+                )
             return False
 
     def restore_best(self, model: nn.Module) -> None:
@@ -267,7 +273,9 @@ def train_lstm(
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    early_stopping = EarlyStoppingAndCheckpoint(checkpoint_path=checkpoint_path, patience=patience)
+    early_stopping = EarlyStoppingAndCheckpoint(
+        checkpoint_path=checkpoint_path, patience=patience
+    )
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -293,7 +301,9 @@ def train_lstm(
         val_loss /= len(val_dataset)
 
         if epoch % 5 == 0 or epoch == 1:
-            logger.info(f"Epoch {epoch:02d}/{epochs:02d} | Train Loss: {train_loss:.6f} | Val Loss: {val_loss:.6f}")
+            logger.info(
+                f"Epoch {epoch:02d}/{epochs:02d} | Train Loss: {train_loss:.6f} | Val Loss: {val_loss:.6f}"
+            )
 
         # EarlyStopping & ModelCheckpoint step
         early_stopping.step(val_loss, model)
@@ -365,9 +375,22 @@ def plot_predictions(
         output_path: File path to save the chart.
     """
     plt.figure(figsize=(14, 6))
-    plt.plot(dates, actual, label=f"Actual {ticker} Close", color="#1f77b4", linewidth=2.0)
-    plt.plot(dates, predicted, label=f"LSTM Predicted Close (60d window)", color="#ff7f0e", linestyle="--", linewidth=2.0)
-    plt.title(f"{ticker} - Actual vs LSTM Predicted Next-Day Close Price", fontsize=14, fontweight="bold")
+    plt.plot(
+        dates, actual, label=f"Actual {ticker} Close", color="#1f77b4", linewidth=2.0
+    )
+    plt.plot(
+        dates,
+        predicted,
+        label="LSTM Predicted Close (60d window)",
+        color="#ff7f0e",
+        linestyle="--",
+        linewidth=2.0,
+    )
+    plt.title(
+        f"{ticker} - Actual vs LSTM Predicted Next-Day Close Price",
+        fontsize=14,
+        fontweight="bold",
+    )
     plt.xlabel("Date", fontsize=11)
     plt.ylabel("Price (INR)", fontsize=11)
     plt.legend(loc="upper left", frameon=True)
@@ -457,21 +480,25 @@ def run_lstm_pipeline(
         base_df = pd.read_csv(baseline_csv)
         ticker_base = base_df[base_df["Ticker"] == ticker].copy()
         for _, row in ticker_base.iterrows():
-            comparison_rows.append({
-                "Ticker": ticker,
-                "Model": row["Model"],
-                "Test_RMSE": row["Test_RMSE"],
-                "Test_MAE": row["Test_MAE"],
-                "Test_MAPE_%": row["Test_MAPE_%"],
-            })
+            comparison_rows.append(
+                {
+                    "Ticker": ticker,
+                    "Model": row["Model"],
+                    "Test_RMSE": row["Test_RMSE"],
+                    "Test_MAE": row["Test_MAE"],
+                    "Test_MAPE_%": row["Test_MAPE_%"],
+                }
+            )
 
-    comparison_rows.append({
-        "Ticker": ticker,
-        "Model": "LSTM (60-day window)",
-        "Test_RMSE": metrics["RMSE"],
-        "Test_MAE": metrics["MAE"],
-        "Test_MAPE_%": metrics["MAPE_%"],
-    })
+    comparison_rows.append(
+        {
+            "Ticker": ticker,
+            "Model": "LSTM (60-day window)",
+            "Test_RMSE": metrics["RMSE"],
+            "Test_MAE": metrics["MAE"],
+            "Test_MAPE_%": metrics["MAPE_%"],
+        }
+    )
 
     comparison_df = pd.DataFrame(comparison_rows)
     comparison_csv = PROCESSED_DIR / "model_comparison.csv"
@@ -489,4 +516,3 @@ if __name__ == "__main__":
     print("=" * 70)
     print(comp_table.to_string(index=False))
     print("=" * 70)
-

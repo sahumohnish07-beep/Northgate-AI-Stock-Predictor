@@ -2,9 +2,9 @@
 Unit tests for Recommendation Engine and Backtesting (Phase 6).
 """
 
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -16,7 +16,6 @@ from src.recommender import (
     generate_recommendation,
     get_risk_thresholds,
     plot_backtest_results,
-    run_backtest_pipeline,
 )
 
 
@@ -25,7 +24,14 @@ class TestRecommendationEngine(unittest.TestCase):
 
     def test_get_risk_thresholds_valid(self):
         """Test retrieving thresholds for standard profiles and aliases."""
-        for profile in ["Low", "Medium", "High", "Conservative", "Balanced", "Aggressive"]:
+        for profile in [
+            "Low",
+            "Medium",
+            "High",
+            "Conservative",
+            "Balanced",
+            "Aggressive",
+        ]:
             th = get_risk_thresholds(profile)
             self.assertIn("buy_return", th)
             self.assertIn("buy_sentiment", th)
@@ -131,7 +137,9 @@ class TestRecommendationEngine(unittest.TestCase):
         # Low: triggers Sell (< -1.5% and < -0.05)
         # Medium: stays in Hold (< -2.0% required)
         res_low_sell = generate_recommendation(-0.018, -0.08, 0.20, risk_profile="Low")
-        res_med_sell = generate_recommendation(-0.018, -0.08, 0.20, risk_profile="Medium")
+        res_med_sell = generate_recommendation(
+            -0.018, -0.08, 0.20, risk_profile="Medium"
+        )
         self.assertEqual(res_low_sell["recommendation"], "Sell")
         self.assertEqual(res_med_sell["recommendation"], "Hold")
 
@@ -154,7 +162,9 @@ class TestRecommendationEngine(unittest.TestCase):
         metrics = compute_performance_metrics(daily_ret, risk_free_rate=0.06)
 
         self.assertGreater(metrics["Total_Return"], 1.5)  # 1.01^100 - 1 = 1.7048
-        self.assertEqual(metrics["Max_Drawdown"], 0.0)    # Strictly increasing, zero drawdown
+        self.assertEqual(
+            metrics["Max_Drawdown"], 0.0
+        )  # Strictly increasing, zero drawdown
         self.assertGreater(metrics["CAGR"], 0.0)
 
     def test_compute_performance_metrics_empty(self):
@@ -228,4 +238,3 @@ class TestRecommendationEngine(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

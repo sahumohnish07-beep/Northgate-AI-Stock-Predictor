@@ -11,6 +11,7 @@ Computes technical indicators:
 """
 
 from typing import List, Optional
+
 import numpy as np
 import pandas as pd
 
@@ -233,7 +234,9 @@ def engineer_features(
         data[col] = bb_df[col]
 
     # 6. Lag Features
-    lag_df = compute_lag_features(data, columns=["Close", "Daily_Return", "Volume"], lags=[1, 2, 3, 5])
+    lag_df = compute_lag_features(
+        data, columns=["Close", "Daily_Return", "Volume"], lags=[1, 2, 3, 5]
+    )
     for col in lag_df.columns:
         data[col] = lag_df[col]
 
@@ -244,4 +247,3 @@ def engineer_features(
     # Clean NaNs caused by moving windows and lags
     cleaned_df = data.dropna().copy()
     return cleaned_df
-

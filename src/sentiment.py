@@ -6,13 +6,14 @@ aggregates daily sentiment per stock, merges into technical features,
 and retrains the best forecasting model to measure sentiment impact.
 """
 
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 import logging
 import os
 import sys
 import urllib.parse
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
 from dotenv import load_dotenv
 
 # Ensure root directory is on sys.path
@@ -23,7 +24,6 @@ if str(ROOT_DIR) not in sys.path:
 load_dotenv()
 
 import feedparser
-import numpy as np
 import pandas as pd
 import requests
 import torch
@@ -54,17 +54,25 @@ FINBERT_MODEL_NAME = "ProsusAI/finbert"
 class FinBERTSentimentAnalyzer:
     """Encapsulates Hugging Face ProsusAI/finbert for financial sentiment scoring."""
 
-    def __init__(self, model_name: str = FINBERT_MODEL_NAME, device: Optional[torch.device] = None) -> None:
+    def __init__(
+        self,
+        model_name: str = FINBERT_MODEL_NAME,
+        device: Optional[torch.device] = None,
+    ) -> None:
         """Initializes FinBERT tokenizer and pre-trained classification model.
 
         Args:
             model_name: Hugging Face hub model identifier.
             device: Torch execution device (cpu or cuda).
         """
-        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device or torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
         logger.info(f"Loading FinBERT model '{model_name}' on {self.device}...")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(self.device)
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(
+            self.device
+        )
         self.model.eval()
 
         # FinBERT labels: 0: positive, 1: negative, 2: neutral
@@ -105,7 +113,9 @@ class FinBERTSentimentAnalyzer:
             probs = F.softmax(outputs.logits, dim=1).cpu().numpy()[0]
 
         # Extract probabilities according to FinBERT id2label mapping
-        prob_dict = {self.id2label[i].lower(): float(probs[i]) for i in range(len(probs))}
+        prob_dict = {
+            self.id2label[i].lower(): float(probs[i]) for i in range(len(probs))
+        }
         pos_prob = prob_dict.get("positive", 0.0)
         neg_prob = prob_dict.get("negative", 0.0)
         neu_prob = prob_dict.get("neutral", 0.0)
@@ -141,35 +151,98 @@ class FinBERTSentimentAnalyzer:
 
 FALLBACK_HEADLINES: Dict[str, List[Tuple[str, str]]] = {
     "RELIANCE.NS": [
-        ("Reliance Industries posts record quarterly profit driven by retail and telecom growth.", "2026-10-25"),
-        ("Jio expands 5G enterprise solutions, adding high-margin enterprise accounts.", "2026-10-28"),
-        ("Oil refinery margins face minor headwinds amid fluctuating crude prices.", "2026-11-01"),
-        ("Reliance Retail accelerates aggressive physical store expansion nationwide.", "2026-11-03"),
-        ("Analysts maintain bullish buy rating on Reliance Industries on green energy momentum.", "2026-11-05"),
+        (
+            "Reliance Industries posts record quarterly profit driven by retail and telecom growth.",
+            "2026-10-25",
+        ),
+        (
+            "Jio expands 5G enterprise solutions, adding high-margin enterprise accounts.",
+            "2026-10-28",
+        ),
+        (
+            "Oil refinery margins face minor headwinds amid fluctuating crude prices.",
+            "2026-11-01",
+        ),
+        (
+            "Reliance Retail accelerates aggressive physical store expansion nationwide.",
+            "2026-11-03",
+        ),
+        (
+            "Analysts maintain bullish buy rating on Reliance Industries on green energy momentum.",
+            "2026-11-05",
+        ),
     ],
     "TCS.NS": [
-        ("TCS secures multi-year billion-dollar digital transformation contract in Europe.", "2026-10-26"),
-        ("Tech sector faces minor wage inflation and cautious IT discretionary spending.", "2026-10-30"),
-        ("TCS expands generative AI deployment across banking and insurance clients.", "2026-11-02"),
-        ("Q3 operating margins projected to expand following operational optimization.", "2026-11-04"),
+        (
+            "TCS secures multi-year billion-dollar digital transformation contract in Europe.",
+            "2026-10-26",
+        ),
+        (
+            "Tech sector faces minor wage inflation and cautious IT discretionary spending.",
+            "2026-10-30",
+        ),
+        (
+            "TCS expands generative AI deployment across banking and insurance clients.",
+            "2026-11-02",
+        ),
+        (
+            "Q3 operating margins projected to expand following operational optimization.",
+            "2026-11-04",
+        ),
     ],
     "INFY.NS": [
-        ("Infosys raises annual revenue guidance after stellar quarterly deal wins.", "2026-10-27"),
-        ("Infosys collaborates with global cloud providers for enterprise AI integration.", "2026-10-31"),
-        ("Attrition rates at Infosys decline to lowest level in multiple quarters.", "2026-11-03"),
-        ("Analysts express caution regarding delayed client decision cycles in North America.", "2026-11-05"),
+        (
+            "Infosys raises annual revenue guidance after stellar quarterly deal wins.",
+            "2026-10-27",
+        ),
+        (
+            "Infosys collaborates with global cloud providers for enterprise AI integration.",
+            "2026-10-31",
+        ),
+        (
+            "Attrition rates at Infosys decline to lowest level in multiple quarters.",
+            "2026-11-03",
+        ),
+        (
+            "Analysts express caution regarding delayed client decision cycles in North America.",
+            "2026-11-05",
+        ),
     ],
     "HDFCBANK.NS": [
-        ("HDFC Bank reports robust deposit mobilization and steady net interest margins.", "2026-10-24"),
-        ("Credit card additions surge as retail spending rebounds strongly.", "2026-10-29"),
-        ("Gross NPA ratios remain stable with excellent asset quality across loan books.", "2026-11-02"),
-        ("RBI monetary policy keeps interest rates steady, benefiting private banks.", "2026-11-04"),
+        (
+            "HDFC Bank reports robust deposit mobilization and steady net interest margins.",
+            "2026-10-24",
+        ),
+        (
+            "Credit card additions surge as retail spending rebounds strongly.",
+            "2026-10-29",
+        ),
+        (
+            "Gross NPA ratios remain stable with excellent asset quality across loan books.",
+            "2026-11-02",
+        ),
+        (
+            "RBI monetary policy keeps interest rates steady, benefiting private banks.",
+            "2026-11-04",
+        ),
     ],
     "ITC.NS": [
-        ("ITC cigarette and FMCG volumes show steady growth and pricing power.", "2026-10-27"),
-        ("ITC hotels business demerger reaches final regulatory approval stages.", "2026-10-30"),
-        ("Agri-business revenue surges on strong international commodity exports.", "2026-11-02"),
-        ("ITC paperboards division experiences mild raw material input cost pressure.", "2026-11-05"),
+        (
+            "ITC cigarette and FMCG volumes show steady growth and pricing power.",
+            "2026-10-27",
+        ),
+        (
+            "ITC hotels business demerger reaches final regulatory approval stages.",
+            "2026-10-30",
+        ),
+        (
+            "Agri-business revenue surges on strong international commodity exports.",
+            "2026-11-02",
+        ),
+        (
+            "ITC paperboards division experiences mild raw material input cost pressure.",
+            "2026-11-05",
+        ),
     ],
 }
 
@@ -207,14 +280,18 @@ def fetch_google_news_rss(query: str, max_articles: int = 15) -> List[Dict[str, 
             if clean_title:
                 articles.append({"headline": clean_title, "date": date_str})
 
-        logger.info(f"Retrieved {len(articles)} articles from Google News RSS for {query}.")
+        logger.info(
+            f"Retrieved {len(articles)} articles from Google News RSS for {query}."
+        )
         return articles
     except Exception as exc:
         logger.warning(f"Google News RSS fetch failed for {query}: {exc}")
         return []
 
 
-def fetch_news_api(query: str, api_key: str, max_articles: int = 15) -> List[Dict[str, str]]:
+def fetch_news_api(
+    query: str, api_key: str, max_articles: int = 15
+) -> List[Dict[str, str]]:
     """Fetches articles from NewsAPI if an API key is available.
 
     Args:
@@ -295,6 +372,7 @@ def get_headlines_for_ticker(ticker: str) -> List[Dict[str, str]]:
 # Daily Sentiment Aggregation & Feature Integration
 # ---------------------------------------------------------------------------
 
+
 def compute_daily_sentiment_dataset(
     tickers: Optional[List[str]] = None,
     analyzer: Optional[FinBERTSentimentAnalyzer] = None,
@@ -320,13 +398,15 @@ def compute_daily_sentiment_dataset(
         headlines = get_headlines_for_ticker(ticker)
         for item in headlines:
             score_res = finbert.score_headline(item["headline"])
-            all_scored_records.append({
-                "Date": item["date"],
-                "Ticker": ticker,
-                "Headline": item["headline"],
-                "Label": score_res["label"],
-                "Score": score_res["score"],
-            })
+            all_scored_records.append(
+                {
+                    "Date": item["date"],
+                    "Ticker": ticker,
+                    "Headline": item["headline"],
+                    "Label": score_res["label"],
+                    "Score": score_res["score"],
+                }
+            )
 
     if not all_scored_records:
         logger.warning("No headlines retrieved. Returning empty DataFrame.")
@@ -345,7 +425,9 @@ def compute_daily_sentiment_dataset(
 
     daily_sentiment["Daily_Sentiment"] = daily_sentiment["Daily_Sentiment"].round(4)
     daily_sentiment.to_csv(output_path, index=False)
-    logger.info(f"Aggregated daily sentiment saved to {output_path} ({len(daily_sentiment)} records).")
+    logger.info(
+        f"Aggregated daily sentiment saved to {output_path} ({len(daily_sentiment)} records)."
+    )
 
     return daily_sentiment
 
@@ -410,7 +492,9 @@ def retrain_with_and_without_sentiment(
     Returns:
         pd.DataFrame containing side-by-side performance comparison.
     """
-    logger.info(f"=== Retraining Best Model with vs without FinBERT Sentiment for {ticker} ===")
+    logger.info(
+        f"=== Retraining Best Model with vs without FinBERT Sentiment for {ticker} ==="
+    )
     raw_df = load_raw_data(ticker)
     base_feat_df = engineer_features(raw_df, include_target=True)
 
@@ -445,24 +529,26 @@ def retrain_with_and_without_sentiment(
     preds_with_sent = model_with_sent.predict(X_test_sent)
     metrics_with_sent = compute_metrics(y_test.values, preds_with_sent)
 
-    comparison_results = pd.DataFrame([
-        {
-            "Ticker": ticker,
-            "Variant": "Without Sentiment (Baseline)",
-            "Features": len(X_train_base.columns),
-            "Test_RMSE": metrics_no_sent["RMSE"],
-            "Test_MAE": metrics_no_sent["MAE"],
-            "Test_MAPE_%": metrics_no_sent["MAPE_%"],
-        },
-        {
-            "Ticker": ticker,
-            "Variant": "With FinBERT Sentiment",
-            "Features": len(X_train_sent.columns),
-            "Test_RMSE": metrics_with_sent["RMSE"],
-            "Test_MAE": metrics_with_sent["MAE"],
-            "Test_MAPE_%": metrics_with_sent["MAPE_%"],
-        },
-    ])
+    comparison_results = pd.DataFrame(
+        [
+            {
+                "Ticker": ticker,
+                "Variant": "Without Sentiment (Baseline)",
+                "Features": len(X_train_base.columns),
+                "Test_RMSE": metrics_no_sent["RMSE"],
+                "Test_MAE": metrics_no_sent["MAE"],
+                "Test_MAPE_%": metrics_no_sent["MAPE_%"],
+            },
+            {
+                "Ticker": ticker,
+                "Variant": "With FinBERT Sentiment",
+                "Features": len(X_train_sent.columns),
+                "Test_RMSE": metrics_with_sent["RMSE"],
+                "Test_MAE": metrics_with_sent["MAE"],
+                "Test_MAPE_%": metrics_with_sent["MAPE_%"],
+            },
+        ]
+    )
 
     comparison_results.to_csv(COMPARISON_CSV_PATH, index=False)
     logger.info(f"Saved sentiment comparison table to {COMPARISON_CSV_PATH}")
@@ -485,4 +571,3 @@ if __name__ == "__main__":
     print("=" * 75)
     print(comp_df.to_string(index=False))
     print("=" * 75)
-

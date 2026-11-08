@@ -2,9 +2,9 @@
 Unit tests for Portfolio Optimizer (Phase 5).
 """
 
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -53,7 +53,10 @@ class TestPortfolioOptimizer(unittest.TestCase):
 
         # Covariance matrix must be symmetric
         np.testing.assert_allclose(
-            self.cov.values, self.cov.values.T, atol=1e-8, err_msg="Covariance matrix is not symmetric"
+            self.cov.values,
+            self.cov.values.T,
+            atol=1e-8,
+            err_msg="Covariance matrix is not symmetric",
         )
 
         # Covariance matrix must be positive semi-definite (all eigenvalues >= 0)
@@ -200,4 +203,3 @@ class TestPortfolioOptimizer(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

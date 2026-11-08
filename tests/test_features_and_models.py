@@ -1,6 +1,7 @@
 """Unit tests for Phase 2: Feature engineering and baseline ML models."""
 
 import unittest
+
 import numpy as np
 import pandas as pd
 
@@ -42,7 +43,10 @@ class TestFeaturesAndModels(unittest.TestCase):
         """Verify RSI calculation range and constraints."""
         rsi = compute_rsi(self.df["Close"], period=14)
         self.assertEqual(len(rsi), len(self.df))
-        self.assertTrue((rsi >= 0.0).all() and (rsi <= 100.0).all(), "RSI values must stay between 0 and 100.")
+        self.assertTrue(
+            (rsi >= 0.0).all() and (rsi <= 100.0).all(),
+            "RSI values must stay between 0 and 100.",
+        )
 
     def test_compute_macd(self):
         """Verify MACD components and dimensions."""
@@ -70,7 +74,9 @@ class TestFeaturesAndModels(unittest.TestCase):
         """Verify feature engineering pipeline produces non-empty feature matrix without NaNs."""
         feat_df = engineer_features(self.df, include_target=True)
         self.assertFalse(feat_df.empty)
-        self.assertEqual(feat_df.isna().sum().sum(), 0, "No NaNs allowed in final feature matrix.")
+        self.assertEqual(
+            feat_df.isna().sum().sum(), 0, "No NaNs allowed in final feature matrix."
+        )
         self.assertIn("Target_Next_Close", feat_df.columns)
         self.assertIn("RSI_14", feat_df.columns)
         self.assertIn("MACD", feat_df.columns)
@@ -87,7 +93,10 @@ class TestFeaturesAndModels(unittest.TestCase):
 
         self.assertEqual(len(X_train) + len(X_test), len(feat_df))
         self.assertEqual(len(X_train), int(len(feat_df) * 0.80))
-        self.assertTrue(X_train.index.max() < X_test.index.min(), "Temporal leakage detected between train and test.")
+        self.assertTrue(
+            X_train.index.max() < X_test.index.min(),
+            "Temporal leakage detected between train and test.",
+        )
         self.assertNotIn("Target_Next_Close", feature_cols)
 
     def test_compute_metrics(self):
@@ -106,4 +115,3 @@ class TestFeaturesAndModels(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

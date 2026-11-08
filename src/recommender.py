@@ -8,14 +8,12 @@ lookahead-free backtesting framework comparing active strategy returns against
 passive Buy-and-Hold benchmarks.
 """
 
-from collections import OrderedDict
-from dataclasses import asdict, dataclass
-import os
-from pathlib import Path
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -36,24 +34,24 @@ DEFAULT_RISK_FREE_RATE = 0.06  # 6.0% benchmark for Indian 10Y sovereign G-Sec
 # Base rule (Medium): Buy if ret > +2% and sent > 0.1; Sell if ret < -2% and sent < -0.1; else Hold
 RISK_PROFILE_THRESHOLDS: Dict[str, Dict[str, float]] = {
     "Low": {
-        "buy_return": 0.03,        # +3.0%: Requires stronger positive return hurdle
-        "buy_sentiment": 0.15,      # +0.15: Requires distinctly positive sentiment
-        "sell_return": -0.015,     # -1.5%: Tighter stop to cut losses rapidly
-        "sell_sentiment": -0.05,   # -0.05: Quicker exit on mild negative news
+        "buy_return": 0.03,  # +3.0%: Requires stronger positive return hurdle
+        "buy_sentiment": 0.15,  # +0.15: Requires distinctly positive sentiment
+        "sell_return": -0.015,  # -1.5%: Tighter stop to cut losses rapidly
+        "sell_sentiment": -0.05,  # -0.05: Quicker exit on mild negative news
         "volatility_tolerance": 0.22,  # 22% annualized volatility cap
     },
     "Medium": {
-        "buy_return": 0.02,        # +2.0%: Standard benchmark entry hurdle
-        "buy_sentiment": 0.10,      # +0.10: Positive news sentiment
-        "sell_return": -0.02,      # -2.0%: Standard stop hurdle
-        "sell_sentiment": -0.10,   # -0.10: Negative news sentiment
+        "buy_return": 0.02,  # +2.0%: Standard benchmark entry hurdle
+        "buy_sentiment": 0.10,  # +0.10: Positive news sentiment
+        "sell_return": -0.02,  # -2.0%: Standard stop hurdle
+        "sell_sentiment": -0.10,  # -0.10: Negative news sentiment
         "volatility_tolerance": 0.30,  # 30% annualized volatility cap
     },
     "High": {
-        "buy_return": 0.01,        # +1.0%: Aggressive entry hurdle
-        "buy_sentiment": 0.00,      #  0.00: Neutral or mildly positive news
-        "sell_return": -0.03,      # -3.0%: Wider drawdown tolerance
-        "sell_sentiment": -0.15,   # -0.15: Deeper negative news required to exit
+        "buy_return": 0.01,  # +1.0%: Aggressive entry hurdle
+        "buy_sentiment": 0.00,  #  0.00: Neutral or mildly positive news
+        "sell_return": -0.03,  # -3.0%: Wider drawdown tolerance
+        "sell_sentiment": -0.15,  # -0.15: Deeper negative news required to exit
         "volatility_tolerance": 0.45,  # 45% annualized volatility cap
     },
 }
@@ -156,7 +154,9 @@ def generate_recommendation(
     is_sell_candidate = (predicted_return_5d < s_ret) and (sentiment_score < s_sent)
 
     # Low risk constraint: excessive volatility prevents aggressive entry
-    is_volatility_exceeded = (canonical_profile == "Low") and (volatility > vol_tol * 1.25)
+    is_volatility_exceeded = (canonical_profile == "Low") and (
+        volatility > vol_tol * 1.25
+    )
 
     if is_buy_candidate and not is_volatility_exceeded:
         recommendation = "Buy"
@@ -166,9 +166,15 @@ def generate_recommendation(
         sent_excess = max(0.0, sentiment_score - b_sent)
         ret_boost = min(0.18, (ret_excess / 0.04) * 0.18)
         sent_boost = min(0.12, (sent_excess / 0.40) * 0.12)
-        vol_penalty = max(0.0, (volatility - vol_tol) / 0.20) * 0.10 if volatility > vol_tol else 0.0
+        vol_penalty = (
+            max(0.0, (volatility - vol_tol) / 0.20) * 0.10
+            if volatility > vol_tol
+            else 0.0
+        )
 
-        confidence = float(np.clip(0.68 + ret_boost + sent_boost - vol_penalty, 0.50, 0.98))
+        confidence = float(
+            np.clip(0.68 + ret_boost + sent_boost - vol_penalty, 0.50, 0.98)
+        )
         reason = (
             f"Bullish conviction ({canonical_profile} Risk): Predicted 5-day return "
             f"({predicted_return_5d:+.2%}) exceeds the {b_ret:+.2%} threshold with positive news "
@@ -185,7 +191,9 @@ def generate_recommendation(
         sent_boost = min(0.12, (sent_deficit / 0.40) * 0.12)
         vol_boost = min(0.05, max(0.0, (volatility - vol_tol) / 0.20) * 0.05)
 
-        confidence = float(np.clip(0.68 + ret_boost + sent_boost + vol_boost, 0.50, 0.98))
+        confidence = float(
+            np.clip(0.68 + ret_boost + sent_boost + vol_boost, 0.50, 0.98)
+        )
         reason = (
             f"Bearish signal ({canonical_profile} Risk): Predicted 5-day drop "
             f"({predicted_return_5d:+.2%}) breached the stop hurdle ({s_ret:+.2%}) "
@@ -275,7 +283,11 @@ def compute_performance_metrics(
 
     # Compound Annual Growth Rate (CAGR)
     years = max(num_days / 252.0, 1.0 / 252.0)
-    cagr = float((1.0 + total_return) ** (1.0 / years) - 1.0) if total_return > -1.0 else -1.0
+    cagr = (
+        float((1.0 + total_return) ** (1.0 / years) - 1.0)
+        if total_return > -1.0
+        else -1.0
+    )
 
     # Annualized Volatility
     daily_std = float(clean_returns.std(ddof=1))
@@ -345,7 +357,9 @@ def backtest_strategy(
     # Align dates across series
     common_idx = price_series.index.intersection(predicted_returns_5d.index)
     if len(common_idx) < 10:
-        raise ValueError(f"Insufficient aligned trading days ({len(common_idx)}). Minimum 10 required.")
+        raise ValueError(
+            f"Insufficient aligned trading days ({len(common_idx)}). Minimum 10 required."
+        )
 
     prices = price_series.loc[common_idx].sort_index()
     pred_5d = predicted_returns_5d.loc[common_idx]
@@ -410,7 +424,9 @@ def backtest_strategy(
     pos_series = pd.Series(positions, index=common_idx).shift(1).fillna(0.0)
 
     daily_rf = risk_free_rate / 252.0
-    strategy_daily_ret = pos_series * asset_daily_returns + (1.0 - pos_series) * daily_rf
+    strategy_daily_ret = (
+        pos_series * asset_daily_returns + (1.0 - pos_series) * daily_rf
+    )
     buy_hold_daily_ret = asset_daily_returns
 
     # Build equity curves
@@ -425,8 +441,12 @@ def backtest_strategy(
     bh_dd = (bh_equity - bh_peak) / bh_peak
 
     # Compute comparative metrics
-    strat_metrics = compute_performance_metrics(strategy_daily_ret, risk_free_rate=risk_free_rate)
-    bh_metrics = compute_performance_metrics(buy_hold_daily_ret, risk_free_rate=risk_free_rate)
+    strat_metrics = compute_performance_metrics(
+        strategy_daily_ret, risk_free_rate=risk_free_rate
+    )
+    bh_metrics = compute_performance_metrics(
+        buy_hold_daily_ret, risk_free_rate=risk_free_rate
+    )
 
     comparison_df = pd.DataFrame(
         {
@@ -452,11 +472,21 @@ def backtest_strategy(
                 round(bh_metrics["Max_Drawdown"] * 100.0, 2),
             ],
             "Outperformance": [
-                round((strat_metrics["Total_Return"] - bh_metrics["Total_Return"]) * 100.0, 2),
+                round(
+                    (strat_metrics["Total_Return"] - bh_metrics["Total_Return"])
+                    * 100.0,
+                    2,
+                ),
                 round((strat_metrics["CAGR"] - bh_metrics["CAGR"]) * 100.0, 2),
-                round((strat_metrics["Volatility"] - bh_metrics["Volatility"]) * 100.0, 2),
+                round(
+                    (strat_metrics["Volatility"] - bh_metrics["Volatility"]) * 100.0, 2
+                ),
                 round(strat_metrics["Sharpe_Ratio"] - bh_metrics["Sharpe_Ratio"], 2),
-                round((strat_metrics["Max_Drawdown"] - bh_metrics["Max_Drawdown"]) * 100.0, 2),
+                round(
+                    (strat_metrics["Max_Drawdown"] - bh_metrics["Max_Drawdown"])
+                    * 100.0,
+                    2,
+                ),
             ],
         }
     )
@@ -524,7 +554,9 @@ def plot_backtest_results(
     bh_m = backtest_results["buy_and_hold_metrics"]
     profile = backtest_results.get("risk_profile", "Medium")
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True, gridspec_kw={"height_ratios": [2.2, 1]})
+    fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(12, 8), sharex=True, gridspec_kw={"height_ratios": [2.2, 1]}
+    )
 
     # Panel 1: Cumulative Equity Curve
     ax1.plot(
@@ -574,7 +606,8 @@ def plot_backtest_results(
     ax1.grid(True, linestyle="--", alpha=0.5)
     ax1.legend(loc="upper left", framealpha=0.9, fontsize=9)
     ax1.set_title(
-        title or f"Backtest Performance: Algorithmic Strategy vs Buy & Hold ({profile} Risk)",
+        title
+        or f"Backtest Performance: Algorithmic Strategy vs Buy & Hold ({profile} Risk)",
         fontsize=13,
         fontweight="bold",
         pad=10,
@@ -653,7 +686,9 @@ def run_backtest_pipeline(
 
     close_aligned = close.loc[aligned_idx]
     pred_5d_aligned = pred_5d.loc[aligned_idx]
-    vol_20d = returns.loc[aligned_idx].rolling(20).std().bfill().fillna(0.20) * np.sqrt(252)
+    vol_20d = returns.loc[aligned_idx].rolling(20).std().bfill().fillna(0.20) * np.sqrt(
+        252
+    )
 
     # Ingest FinBERT daily sentiment if available
     sent_series = pd.Series(0.0, index=aligned_idx)
@@ -661,7 +696,9 @@ def run_backtest_pipeline(
     if sent_csv.exists():
         try:
             df_sent = pd.read_csv(sent_csv, parse_dates=["Date"])
-            stock_sent = df_sent[df_sent["Ticker"] == ticker].set_index("Date")["Daily_Sentiment"]
+            stock_sent = df_sent[df_sent["Ticker"] == ticker].set_index("Date")[
+                "Daily_Sentiment"
+            ]
             for d, val in stock_sent.items():
                 if d in sent_series.index:
                     sent_series.loc[d] = float(val)
@@ -682,7 +719,7 @@ def run_backtest_pipeline(
     backtest_out["metrics_comparison"].to_csv(csv_path, index=False)
 
     # Generate and export visualization
-    plot_path = plot_backtest_results(
+    plot_backtest_results(
         backtest_out,
         title=f"Backtest: {ticker} Algorithmic Strategy vs Buy & Hold ({risk_profile} Risk)",
     )
@@ -725,7 +762,7 @@ def main() -> None:
     print("\n[3/3] Backtest Performance Comparison (Strategy vs Buy-and-Hold):")
     print(results["metrics_comparison"].to_string(index=False))
     print(f"\nTrade Count (Position Transitions): {results['trade_count']}")
-    print(f"Artifacts saved:")
+    print("Artifacts saved:")
     print(f"  - Table: {PROCESSED_DATA_DIR / 'backtest_results.csv'}")
     print(f"  - Chart: {PROCESSED_DATA_DIR / 'backtest_results.png'}")
 

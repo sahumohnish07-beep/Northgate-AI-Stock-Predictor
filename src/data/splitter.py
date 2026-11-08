@@ -6,6 +6,7 @@ Conforms to Rule 7: 'Time-series data must be split by time, never randomly.'
 
 from dataclasses import dataclass
 from typing import Generator, Optional, Tuple
+
 import pandas as pd
 
 from src.config import (
@@ -66,7 +67,9 @@ class TimeSeriesSplitter:
             ValueError: If ratios don't sum to ~1.0, or dataset has too few rows.
         """
         if df is None or len(df) < 10:
-            raise ValueError(f"Insufficient data for time-series splitting: {len(df) if df is not None else 0} rows.")
+            raise ValueError(
+                f"Insufficient data for time-series splitting: {len(df) if df is not None else 0} rows."
+            )
 
         total_ratio = train_ratio + val_ratio + test_ratio
         if not abs(total_ratio - 1.0) < 1e-4:
@@ -147,9 +150,13 @@ class TimeSeriesSplitter:
         if val_date:
             val_dt = pd.to_datetime(val_date)
             if not (val_dt < split_dt):
-                raise ValueError(f"val_date ({val_date}) must be earlier than split_date ({split_date}).")
+                raise ValueError(
+                    f"val_date ({val_date}) must be earlier than split_date ({split_date})."
+                )
             train_df = df_sorted[df_sorted.index < val_dt].copy()
-            val_df = df_sorted[(df_sorted.index >= val_dt) & (df_sorted.index < split_dt)].copy()
+            val_df = df_sorted[
+                (df_sorted.index >= val_dt) & (df_sorted.index < split_dt)
+            ].copy()
             test_df = df_sorted[df_sorted.index >= split_dt].copy()
             return train_df, val_df, test_df
 
@@ -197,11 +204,12 @@ class TimeSeriesSplitter:
             if expanding:
                 train_fold = df_sorted.iloc[:test_start].copy()
             else:
-                train_fold = df_sorted.iloc[i * test_size:test_start].copy()
+                train_fold = df_sorted.iloc[i * test_size : test_start].copy()
 
             test_fold = df_sorted.iloc[test_start:test_end].copy()
 
             # Ensure chronological order
-            assert train_fold.index.max() < test_fold.index.min(), "Leakage in walk-forward fold"
+            assert (
+                train_fold.index.max() < test_fold.index.min()
+            ), "Leakage in walk-forward fold"
             yield train_fold, test_fold
-

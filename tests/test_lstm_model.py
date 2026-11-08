@@ -3,6 +3,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import torch
@@ -10,7 +11,6 @@ import torch
 from src.lstm_model import (
     EarlyStoppingAndCheckpoint,
     StockLSTM,
-    evaluate_lstm,
     prepare_lstm_data,
 )
 
@@ -92,4 +92,3 @@ class TestLSTMModel(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

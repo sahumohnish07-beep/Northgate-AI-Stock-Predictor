@@ -5,7 +5,9 @@ import sys
 from typing import Optional
 
 
-def get_logger(name: str = "northgate_ai", level: Optional[int] = None) -> logging.Logger:
+def get_logger(
+    name: str = "northgate_ai", level: Optional[int] = None
+) -> logging.Logger:
     """Configures and returns a standardized logger instance.
 
     Args:
@@ -30,4 +32,3 @@ def get_logger(name: str = "northgate_ai", level: Optional[int] = None) -> loggi
         logger.propagate = False
 
     return logger
-

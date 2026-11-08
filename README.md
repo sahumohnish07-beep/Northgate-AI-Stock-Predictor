@@ -1,217 +1,373 @@
 # Northgate AI Stock Predictor
 
-An enterprise-grade, end-to-end AI platform that predicts stock prices using Machine Learning and Deep Learning, evaluates financial news sentiment using FinBERT, optimizes investment portfolios with Modern Portfolio Theory, and delivers algorithmic Buy/Hold/Sell recommendations through an interactive Streamlit dashboard.
+[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.60.0-FF4B4B.svg)](https://streamlit.io/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.15.0-EE4C2C.svg)](https://pytorch.org/)
+[![HuggingFace](https://img.shields.io/badge/FinBERT-ProsusAI-orange.svg)](https://huggingface.co/ProsusAI/finbert)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+An enterprise-grade, end-to-end artificial intelligence platform engineered for stock market prediction, financial news sentiment extraction, quantitative portfolio optimization, and automated algorithmic trading recommendations. Built specifically for premier Indian equities on the National Stock Exchange (NSE).
 
 ---
 
 > ⚠️ **IMPORTANT DISCLAIMER**  
-> **This platform is for educational and research purposes only, and does not constitute financial or investment advice.** Always conduct your own due diligence before executing any trades or investments.
+> **This platform is strictly for educational, research, and technical demonstration purposes. It does NOT constitute financial, investment, or trading advice.** Past market behavior and backtested algorithmic performance do not guarantee future returns. Always perform your own due diligence and consult a licensed financial advisor before deploying real capital.
 
 ---
 
-## 🏗️ Phase Roadmap
+## 📑 Table of Contents
 
-- [x] **Phase 0: Project Setup & Structure**
-  - Standardized directory layout (`data/raw`, `data/processed`, `notebooks`, `src`, `models`, `tests`).
-  - Core requirements, `.gitignore`, `.env.example`, and baseline Streamlit app.
-- [x] **Phase 1: Data Collection & EDA**
-  - Built `src/data_loader.py` with `yfinance` to fetch 5 years of daily OHLCV data.
-  - Default coverage for premier Indian equities: `RELIANCE.NS`, `TCS.NS`, `INFY.NS`, `HDFCBANK.NS`, `ITC.NS`.
-  - Raw CSV persistence in `data/raw/<ticker>.csv` and automated EDA notebook (`notebooks/01_eda.ipynb`).
-- [x] **Phase 2: Feature Engineering & Baseline ML Models**
-  - Built `src/features.py`: RSI (14), MACD, SMA/EMA (10, 20, 50), Bollinger Bands, returns, rolling volatilities, and lag features.
-  - Built `src/models.py`: Linear Regression, Random Forest, and XGBoost with chronological 80/20 train/test split (Rule 7).
-  - Evaluated with RMSE, MAE, and MAPE; baseline table saved to `data/processed/baseline_results.csv`.
-- [x] **Phase 3: Deep Learning (LSTM) Model**
-  - Built `src/lstm_model.py` with PyTorch: stacked LSTM network with 60-day historical window.
-  - Leak-free preprocessing: `MinMaxScaler` fitted **strictly on train set only**.
-  - `EarlyStopping` and `ModelCheckpoint` callbacks to prevent overfitting.
-  - Prediction plot saved to `data/processed/lstm_actual_vs_predicted.png` and model to `models/lstm_model.pt`.
-- [x] **Phase 4: Financial News Sentiment Analysis (FinBERT)**
-  - Built `src/sentiment.py` using Hugging Face `ProsusAI/finbert`.
-  - Multi-source headlines fetcher supporting Google News RSS (`feedparser`), NewsAPI (key from `.env`), and curated fallbacks.
-  - Scored each headline as positive, neutral, or negative and transformed into normalized polarity score $[-1.0, +1.0]$.
-  - Aggregated daily sentiment scores per stock saved to `data/processed/sentiment.csv`.
-  - Merged sentiment scores and lag features into the technical feature matrix without lookahead leakage.
-  - Retrained the best model to evaluate predictive impact; results saved to `data/processed/sentiment_model_comparison.csv`.
-  - Unit tests added in `tests/test_sentiment.py`.
-- [x] **Phase 5: Portfolio Optimization & Recommendation Engine**
-  - Built `src/portfolio.py` using Modern Portfolio Theory (MPT) via `PyPortfolioOpt`.
-  - Computed annualized expected returns ($\mu$) and covariance matrix ($\Sigma$) across 5 premier Indian equities.
-  - Implemented 3 investor risk profiles:
-    - **Low Risk**: Minimum Volatility portfolio ($w_i \ge 0$).
-    - **Medium Risk**: Maximum Sharpe Ratio tangency portfolio ($R_f = 6.0\%$).
-    - **High Risk**: Maximum Return subject to a single-asset weight cap ($w_i \le 40\%$).
-  - Exported allocation metrics to `data/processed/portfolio_allocations.csv`.
-  - Generated and saved Efficient Frontier chart with risk profile markers to `data/processed/efficient_frontier.png`.
-  - Added multi-factor algorithmic Buy / Hold / Sell / Underweight recommendation framework.
-  - Comprehensive unit test suite in `tests/test_portfolio.py`.
-- [x] **Phase 6: Recommendation Engine & Backtesting**
-  - Built `src/recommender.py` fusing 5-day predicted return, FinBERT sentiment, and volatility.
-  - Rule-based decision logic: Buy if predicted return > +2% and sentiment > 0.1; Sell if < -2% and sentiment < -0.1; otherwise Hold.
-  - Risk-profile adaptive threshold customization across Low (conservative), Medium (balanced), and High (aggressive) profiles.
-  - Granular confidence level estimation (0.0 to 1.0) and descriptive diagnostic rationale.
-  - Walk-forward, lookahead-free backtesting framework comparing strategy returns against buy-and-hold benchmarks.
-  - Evaluation metrics: Total Return, CAGR, Annualized Volatility, Sharpe Ratio, and Maximum Drawdown.
-  - Exported artifacts: `data/processed/backtest_results.csv` and dual-panel chart `data/processed/backtest_results.png`.
-  - Comprehensive unit test suite in `tests/test_recommender.py`.
-- [x] **Phase 7: Interactive Streamlit Dashboard**
-  - Full-featured multi-tab enterprise dashboard in `app.py`.
-  - Sidebar: stock selector (5 premier Indian equities), risk profile selector (Low, Medium, High), forecast horizon slider (1–15 days), and forecasting model engine toggle.
-  - 5 interactive tabs:
-    - **📊 Market Overview**: Real-time KPI tiles, interactive OHLC candlestick chart with SMA (20, 50), EMA (20), and Bollinger Bands, volume subplots, RSI (14) gauge, and recent OHLCV records table.
-    - **🔮 Price Prediction**: Multi-step autoregressive price projections, 95% confidence interval shaded cones, and model test benchmarks (MAE, RMSE, MAPE).
-    - **📰 News Sentiment (FinBERT)**: Real-time polarity score meter, historical daily sentiment trend bar chart, and curated financial news table.
-    - **💼 Portfolio Optimization**: Modern Portfolio Theory (PyPortfolioOpt), interactive allocation donut chart, dynamic Efficient Frontier curve, and cross-profile weight matrix.
-    - **🎯 Recommendations & Backtest**: Prominent styled recommendation card (🟢 Buy, 🟡 Hold, 🔴 Sell) with confidence meter, rationale string, threshold pills, and walk-forward lookahead-free backtester with equity curves and underwater drawdowns.
-  - Performance caching via `@st.cache_data` and `@st.cache_resource`, loading spinners, and robust error handling.
-  - Prominent educational and risk disclaimer in footer.
+- [Overview](#-overview)
+- [Architecture](#-architecture)
+- [Key Features](#-key-features)
+- [Interactive Dashboard](#-interactive-dashboard)
+- [Empirical Results & Benchmarks](#-empirical-results--benchmarks)
+  - [1. Baseline Machine Learning Models](#1-baseline-machine-learning-models)
+  - [2. Deep Learning (LSTM) vs Machine Learning](#2-deep-learning-lstm-vs-machine-learning)
+  - [3. FinBERT Sentiment Impact Analysis](#3-finbert-sentiment-impact-analysis)
+  - [4. Portfolio Optimization & Risk Profiles](#4-portfolio-optimization--risk-profiles)
+  - [5. Recommendation Strategy Backtest](#5-recommendation-strategy-backtest)
+- [Screenshots](#-screenshots)
+- [Installation](#-installation)
+- [Usage & Execution](#-usage--execution)
+- [Testing & Quality Assurance](#-testing--quality-assurance)
+- [Limitations](#-limitations)
+- [License](#-license)
+- [Disclaimer](#-disclaimer)
 
 ---
 
-## 📰 Phase 4 FinBERT Sentiment & Model Retraining Benchmark
+## 🔭 Overview
 
-Evaluated on **RELIANCE.NS** using chronological 80/20 train/test split:
+Financial markets are non-linear, stochastic systems driven by complex interactions between price momentum, macroeconomics, and investor psychology. Traditional quantitative models often rely solely on historical price action while ignoring qualitative sentiment or modern portfolio constraints.
 
-| Model Variant | Feature Count | Test RMSE | Test MAE | Test MAPE (%) |
+The **Northgate AI Stock Predictor** solves this challenge by integrating five distinct analytical layers into a unified decision pipeline:
+1. **Automated Market Data Harvesting**: 5 years of daily OHLCV market feeds via Yahoo Finance for Indian market leaders (`RELIANCE.NS`, `TCS.NS`, `INFY.NS`, `HDFCBANK.NS`, `ITC.NS`).
+2. **Technical Feature Engineering**: Over 35 specialized technical indicators, including RSI, MACD, Bollinger Bands, Moving Averages (SMA/EMA), rolling return volatilities, and autoregressive lag variables.
+3. **Dual-Horizon Predictive Modeling**: Classical machine learning algorithms (Linear Regression, Random Forest, XGBoost) combined with a deep stacked Long Short-Term Memory (StockLSTM) recurrent neural network.
+4. **NLP Financial Sentiment Intelligence**: Transfer learning using `ProsusAI/finbert` to evaluate real-time headlines scraped from Google News RSS and NewsAPI.
+5. **Modern Portfolio Theory (MPT) & Algorithmic Execution**: Markowitz Mean-Variance Optimization, dynamic Efficient Frontier plotting, and an adaptive Buy/Hold/Sell recommendation engine with walk-forward historical backtesting.
+
+---
+
+## 🏛 Architecture
+
+The platform follows a modular, leak-free design ensuring complete separation between training and evaluation phases.
+
+```mermaid
+flowchart TD
+    subgraph DataIngestion["1. Data Ingestion & Auto-Recovery"]
+        YF["Yahoo Finance (yfinance)"] --> RawData["data/raw/<ticker>.csv"]
+        RSS["Google News RSS / NewsAPI"] --> RawNews["Headlines Feed"]
+    end
+
+    subgraph FeatureEngineering["2. Technical & Sentiment Feature Engineering"]
+        RawData --> Technicals["Technical Indicators\n(RSI, MACD, BB, SMA/EMA, Volatility, Lags)"]
+        RawNews --> FinBERT["FinBERT Transformer\n(Hugging Face ProsusAI)"]
+        FinBERT --> Polarity["Daily Sentiment Score\n[-1.0 to +1.0]"]
+        Technicals & Polarity --> FeatureMatrix["Leak-Free Feature Matrix\n(Strict Chronological 80/20 Split)"]
+    end
+
+    subgraph Modeling["3. Multi-Model Forecasting Engine"]
+        FeatureMatrix --> MLModels["Baseline ML Models\n(Linear Regression, Random Forest, XGBoost)"]
+        FeatureMatrix --> DLModel["Stacked PyTorch LSTM\n(60-day historical window)"]
+        MLModels --> BestML["Best ML Model Artifact\n(models/best_model.joblib)"]
+        DLModel --> LSTMArtifact["LSTM Artifact & Scaler\n(models/lstm_model.pt)"]
+    end
+
+    subgraph DecisionLayer["4. Quantitative Portfolio & Recommendation Engine"]
+        RawData --> PyPfOpt["Modern Portfolio Theory\n(PyPortfolioOpt Convex Solvers)"]
+        PyPfOpt --> Allocations["Optimal Allocations\n(Low, Medium, High Risk Profiles)"]
+        Allocations & BestML & Polarity --> Recommender["Algorithmic Signal Engine\n(Predicted Return + Sentiment + Volatility)"]
+        Recommender --> Backtest["Walk-Forward Backtesting Engine\n(Alpha, Max Drawdown, Sharpe)"]
+    end
+
+    subgraph Presentation["5. Interactive Web Dashboard"]
+        PresentationLayer["Streamlit Multi-Tab Application\n(app.py on http://localhost:8501)"]
+        BestML -.-> PresentationLayer
+        LSTMArtifact -.-> PresentationLayer
+        Allocations -.-> PresentationLayer
+        Recommender -.-> PresentationLayer
+        Backtest -.-> PresentationLayer
+    end
+```
+
+---
+
+## ✨ Key Features
+
+- **Self-Healing Data Layer**: Automatic detection of missing raw market data with one-click background download buttons embedded directly in the Streamlit UI.
+- **Strict Leak-Free Pipeline**: All normalizations (`MinMaxScaler`, standardizations) and splits strictly adhere to chronological forward ordering. Zero lookahead bias.
+- **Deep Recurrent Forecasting**: 2-layer stacked LSTM neural network with dropout regularization, early stopping, and automatic checkpointing.
+- **FinBERT NLP Engine**: Domain-specific sentiment scoring fine-tuned on financial corpora, producing continuous polarity metrics and categorical labels (Bullish, Neutral, Bearish).
+- **Modern Portfolio Theory (MPT)**:
+  - **Low Risk**: Global Minimum Volatility portfolio ($w_i \ge 0$).
+  - **Medium Risk**: Maximum Sharpe Ratio tangency portfolio ($R_f = 6.0\%$).
+  - **High Risk**: Maximum Expected Return subject to a single-asset weight cap ($w_i \le 40\%$).
+- **Walk-Forward Backtesting**: Realistic strategy simulation accounting for dynamic signals, benchmark buy-and-hold comparisons, equity curves, and underwater drawdown analyses.
+- **Production Dashboard**: Built with Streamlit and Plotly, featuring interactive candlestick charts, confidence cones, real-time KPI tiles, and responsive caching via `@st.cache_data`.
+
+---
+
+## 🖥 Interactive Dashboard
+
+The Streamlit dashboard (`app.py`) provides 5 dedicated views:
+
+1. **📊 Market Overview**: Real-time KPI tiles (Latest Close, Price Change %, 52-Week Range, 20-Day Volatility), interactive Plotly OHLC candlestick chart with selectable timeframes (3M, 6M, 1Y, 5Y), technical overlay toggles (SMA 20/50, EMA 20, Bollinger Bands), color-coded volume histogram, and RSI (14) gauge.
+2. **🔮 Price Prediction**: Multi-step autoregressive price projections (1–15 trading days ahead) with expanding 95% confidence intervals and historical error metrics (MAE, RMSE, MAPE).
+3. **📰 News Sentiment (FinBERT)**: Real-time sentiment gauge, categorical polarity badge, historical daily sentiment bar chart, and curated financial headlines table.
+4. **💼 Portfolio Optimization**: Interactive allocation donut chart, dynamic Efficient Frontier curve with individual asset risk-return coordinates, tangency line, and cross-profile allocation matrix.
+5. **🎯 Recommendations & Backtest**: Actionable decision banner (🟢 Buy, 🟡 Hold, 🔴 Sell) with confidence percentage and detailed rationale, alongside a walk-forward backtest simulator with cumulative equity curves and drawdown charts.
+
+---
+
+## 📊 Empirical Results & Benchmarks
+
+### 1. Baseline Machine Learning Models
+Evaluated on a chronological 80/20 train/test split across 5 premier Indian equities:
+
+| Ticker | Model | Train RMSE | Test RMSE | Test MAE | Test MAPE (%) |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **RELIANCE.NS** | **Linear Regression (Best)** | **17.63** | **20.77** | **14.88** | **1.11%** |
+| RELIANCE.NS | Random Forest | 8.09 | 22.50 | 16.94 | 1.25% |
+| RELIANCE.NS | XGBoost | 9.25 | 23.36 | 17.73 | 1.32% |
+| **TCS.NS** | **Linear Regression (Best)** | **46.80** | **53.06** | **39.27** | **1.60%** |
+| TCS.NS | Random Forest | 21.65 | 548.68 | 466.32 | 20.38% |
+| TCS.NS | XGBoost | 25.00 | 596.56 | 511.36 | 22.30% |
+| **INFY.NS** | **Linear Regression (Best)** | **24.76** | **27.44** | **21.00** | **1.73%** |
+| INFY.NS | Random Forest | 11.57 | 129.12 | 98.83 | 8.90% |
+| INFY.NS | XGBoost | 13.20 | 129.52 | 100.24 | 9.00% |
+| **HDFCBANK.NS** | **Random Forest (Best)** | **4.85** | **13.34** | **10.18** | **1.28%** |
+| HDFCBANK.NS | Linear Regression | 12.48 | 14.01 | 10.49 | 1.32% |
+| HDFCBANK.NS | XGBoost | 5.65 | 14.39 | 11.37 | 1.43% |
+| **ITC.NS** | **Linear Regression (Best)** | **5.42** | **6.24** | **4.04** | **1.35%** |
+| ITC.NS | XGBoost | 2.70 | 11.42 | 9.51 | 3.19% |
+| ITC.NS | Random Forest | 2.06 | 18.18 | 16.13 | 5.49% |
+
+### 2. Deep Learning (LSTM) vs Machine Learning
+Evaluated on **RELIANCE.NS** using a 60-day historical window:
+
+| Model Architecture | Input Window | Test RMSE | Test MAE | Test MAPE (%) |
 | :--- | :---: | :---: | :---: | :---: |
-| **Without Sentiment (Baseline)** | 35 | 20.7664 | 14.8791 | 1.1080% |
-| **With FinBERT Sentiment** | 37 | 20.7664 | 14.8791 | 1.1080% |
+| **Linear Regression** | 1-Day Lag Matrix | **20.77** | **14.88** | **1.11%** |
+| **Random Forest** | 1-Day Lag Matrix | 22.50 | 16.94 | 1.25% |
+| **XGBoost** | 1-Day Lag Matrix | 23.36 | 17.73 | 1.32% |
+| **StockLSTM (PyTorch)** | 60-Day Sequential Window | 30.42 | 23.68 | 1.75% |
 
-*Data Artifacts:*
-- Daily aggregated sentiment dataset: `data/processed/sentiment.csv`
-- Model comparison table: `data/processed/sentiment_model_comparison.csv`
+### 3. FinBERT Sentiment Impact Analysis
+Ablation experiment testing predictive feature addition on **RELIANCE.NS**:
 
----
+| Model Configuration | Feature Count | Test RMSE | Test MAE | Test MAPE (%) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Technical Features Only (Baseline)** | 35 | 20.7664 | 14.8791 | 1.1080% |
+| **Technical + FinBERT Sentiment** | 37 | 20.7664 | 14.8791 | 1.1080% |
 
-## 📊 Phase 5 Portfolio Optimization Benchmark & Risk Profiles
+### 4. Portfolio Optimization & Risk Profiles
+Optimized across all 5 assets over a 5-year historical horizon with risk-free rate $R_f = 6.0\%$:
 
-Portfolio optimized across the 5 premier Indian equities (`RELIANCE.NS`, `TCS.NS`, `INFY.NS`, `HDFCBANK.NS`, `ITC.NS`) over 5-year historical trading data with risk-free rate $R_f = 6.0\%$:
-
-| Risk Profile | Objective | Expected Annual Return | Annual Volatility | Sharpe Ratio | Top Asset Allocations |
+| Risk Profile | Optimization Objective | Expected Return | Annual Volatility | Sharpe Ratio | Target Asset Allocations |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| **Low Risk** | Min Volatility | 3.17% | 14.32% | -0.20 | ITC (35.5%), HDFCBANK (26.0%), TCS (22.0%), RELIANCE (14.3%) |
-| **Medium Risk** | Max Sharpe Ratio | 9.56% | 19.76% | +0.18 | ITC (100.0%) |
-| **High Risk** | Max Return (40% Cap) | 5.30% | 15.95% | -0.04 | ITC (40.0%), RELIANCE (40.0%), HDFCBANK (20.0%) |
+| **Low Risk** | Minimum Volatility | 3.17% | 14.32% | -0.20 | ITC (35.5%), HDFCBANK (26.0%), TCS (22.0%), RELIANCE (14.3%) |
+| **Medium Risk**| Maximum Sharpe Ratio | 9.56% | 19.76% | +0.18 | ITC (100.0%) |
+| **High Risk** | Max Return (40% Weight Cap) | 5.30% | 15.95% | -0.04 | ITC (40.0%), RELIANCE (40.0%), HDFCBANK (20.0%) |
 
-### Algorithmic Allocation & Stock Recommendations
+### 5. Recommendation Strategy Backtest
+Walk-forward strategy simulation on **RELIANCE.NS** (1,237 trading days) vs Buy-and-Hold:
 
-| Ticker | Mean Weight | Low Risk | Medium Risk | High Risk | Recommendation |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| **ITC.NS** | 58.50% | 35.51% | 100.00% | 40.00% | **Strong Buy (Overweight)** |
-| **RELIANCE.NS** | 18.09% | 14.27% | 0.00% | 40.00% | **Buy / Moderate Allocation** |
-| **HDFCBANK.NS** | 15.34% | 26.02% | 0.00% | 20.00% | **Buy / Moderate Allocation** |
-| **TCS.NS** | 7.34% | 22.02% | 0.00% | 0.00% | **Hold / Selective** |
-| **INFY.NS** | 0.72% | 2.17% | 0.00% | 0.00% | **Underweight / Avoid** |
-
-*Data & Visualization Artifacts:*
-- Allocations dataset: `data/processed/portfolio_allocations.csv`
-- Efficient Frontier plot: `data/processed/efficient_frontier.png`
-
----
-
-## 📈 Phase 6 Recommendation Engine & Backtesting Benchmark
-
-Evaluated on **RELIANCE.NS** (1,237 trading days) using walk-forward, lookahead-free strategy simulation with benchmark risk-free rate $R_f = 6.0\%$:
-
-| Performance Metric | Recommendation Strategy (Medium Risk) | Buy & Hold Benchmark | Outperformance / Alpha |
+| Performance Metric | Recommendation Strategy | Buy & Hold Benchmark | Net Outperformance / Alpha |
 | :--- | :---: | :---: | :---: |
-| **Total Return (%)** | **+33.16%** | +13.60% | **+19.56%** |
+| **Total Cumulative Return** | **+33.16%** | +13.60% | **+19.56% (Alpha)** |
 | **CAGR (%)** | **6.04%** | 2.64% | **+3.40%** |
-| **Annualized Volatility (%)** | **1.05%** | 22.93% | **-21.88%** |
-| **Sharpe Ratio** | **-0.13** | -0.03 | -0.09 |
-| **Maximum Drawdown (%)** | **-2.03%** | -27.67% | **+25.64% (Risk Curbed)** |
-
-*Key Findings:*
-- **Capital Preservation**: By transitioning to cash ($R_f$) during prolonged downtrends and sideways chop, maximum drawdown was reduced from **-27.67% down to -2.03%**.
-- **Net Alpha**: The strategy delivered a **+19.56% excess cumulative return** over the passive buy-and-hold benchmark.
-
-*Data & Visualization Artifacts:*
-- Metrics comparison table: `data/processed/backtest_results.csv`
-- Dual-panel equity curve & underwater drawdown plot: `data/processed/backtest_results.png`
+| **Annualized Volatility** | **1.05%** | 22.93% | **-21.88% (Risk Curbed)** |
+| **Sharpe Ratio ($R_f=6\%$)** | **-0.13** | -0.03 | -0.09 |
+| **Maximum Drawdown** | **-2.03%** | -27.67% | **+25.64% (Capital Preserved)** |
 
 ---
 
-## 🖥️ Phase 7 Interactive Streamlit Dashboard
+## 📸 Screenshots
 
-Launch the unified intelligence interface locally:
-
-```bash
-streamlit run app.py
+<!-- slide -->
+### 📊 Tab 1: Market Overview & Technical Candlestick Analysis
 ```
++----------------------------------------------------------------------------------------------------+
+|  CURRENT PRICE: ₹1,418.50  |  CHANGE: +₹14.20 (+1.01%)  |  52-WK RANGE: ₹1,120 - ₹1,610  |  RSI: 54.2  |
+|----------------------------------------------------------------------------------------------------|
+|  [ Interactive Plotly Candlestick Chart with SMA 20, SMA 50, EMA 20 & Bollinger Bands Envelopes ]  |
+|  [ Color-coded Volume Bars & Moving Average Overlays ]                                             |
++----------------------------------------------------------------------------------------------------+
+```
+*(Placeholder: Run `streamlit run app.py` and inspect Tab 1)*
 
-### Dashboard Capabilities & Views
+<!-- slide -->
+### 🔮 Tab 2: Autoregressive Forecasts & Confidence Cones
+```
++----------------------------------------------------------------------------------------------------+
+|  FORECAST ENGINE: Linear Regression  |  HORIZON: 5 Days Ahead  |  CONFIDENCE INTERVAL: 95%         |
+|----------------------------------------------------------------------------------------------------|
+|  [ Multi-step forecast curve extending beyond latest trading session with shaded confidence cone ] |
+|  [ Historical Model Metrics: Test MAE ₹14.88 | Test RMSE ₹20.77 | Test MAPE 1.11% ]               |
++----------------------------------------------------------------------------------------------------+
+```
+*(Placeholder: Run `streamlit run app.py` and inspect Tab 2)*
 
-1. **Market Overview**:
-   - Live KPI metric cards: Current price, absolute & percentage price delta, 52-week trading range, 20-day annualized volatility, and trading volume.
-   - Interactive Plotly OHLC candlestick chart with selectable timeframes (3M, 6M, 1Y, 5Y).
-   - Moving average overlays (SMA 20, SMA 50, EMA 20) and Bollinger Bands with shaded volatility envelopes.
-   - Volume subplots color-coded by bullish/bearish trading sessions.
-   - Technical momentum gauges (RSI 14 with overbought/oversold boundaries) and recent daily OHLCV tabular view.
+<!-- slide -->
+### 📰 Tab 3: FinBERT Financial News Sentiment
+```
++----------------------------------------------------------------------------------------------------+
+|  SENTIMENT BADGE: [ 🟢 BULLISH ]  |  POLARITY SCORE: +0.482  |  CONFIDENCE: 92.4%                  |
+|----------------------------------------------------------------------------------------------------|
+|  [ Historical Daily Polarity Bar Chart with Threshold Guides ]                                     |
+|  [ Live RSS Financial Headlines Feed with FinBERT Polarity Breakdown ]                             |
++----------------------------------------------------------------------------------------------------+
+```
+*(Placeholder: Run `streamlit run app.py` and inspect Tab 3)*
 
-2. **Price Prediction**:
-   - Multi-step price trajectory forecasts (1, 3, 5, 10, or 15 days ahead).
-   - Dual forecasting engines: Best Machine Learning model (Linear Regression) and Deep Learning recurrent model (StockLSTM).
-   - Dynamic 95% confidence intervals expanding over the forecast horizon.
-   - Historical model evaluation benchmarks (MAE, RMSE, MAPE).
+<!-- slide -->
+### 💼 Tab 4: Portfolio Optimization & Efficient Frontier
+```
++----------------------------------------------------------------------------------------------------+
+|  ACTIVE RISK PROFILE: Medium Risk (Max Sharpe)  |  SHARPE RATIO: +0.18  |  EXP RETURN: 9.56%       |
+|----------------------------------------------------------------------------------------------------|
+|  [ Donut Chart: Asset Allocation Breakdown across RELIANCE, TCS, INFY, HDFCBANK, ITC ]            |
+|  [ Efficient Frontier Curve with Individual Assets, Risk-Free Rate, and Tangency Line ]            |
++----------------------------------------------------------------------------------------------------+
+```
+*(Placeholder: Run `streamlit run app.py` and inspect Tab 4)*
 
-3. **News Sentiment (FinBERT)**:
-   - Polarity classification badge (🟢 Bullish, 🟡 Neutral, 🔴 Bearish) with raw FinBERT polarity score $[-1.0, +1.0]$.
-   - Daily historical sentiment trend bar chart with threshold guide lines.
-   - Recent curated financial headlines with source attribution and model confidence scores.
-
-4. **Portfolio Optimization**:
-   - Modern Portfolio Theory (PyPortfolioOpt) across the 5 default Indian equities.
-   - Interactive donut chart showing asset allocation weights tailored to the active investor risk profile.
-   - Interactive Efficient Frontier curve plotting individual stock risk-returns, profile optima, and the risk-free rate ($R_f = 6.0\%$).
-   - Cross-profile allocation matrix and algorithmic stock recommendations.
-
-5. **Recommendations & Backtest**:
-   - Large styled recommendation banner with action badge (🟢 Buy, 🟡 Hold, 🔴 Sell), confidence meter, and comprehensive diagnostic rationale.
-   - Walk-forward lookahead-free backtester with configurable capital and parameters.
-   - Comparative performance metrics vs Buy-and-Hold benchmark.
-   - Dual-panel Plotly interactive chart tracking cumulative portfolio valuations and peak-to-trough drawdowns.
+<!-- slide -->
+### 🎯 Tab 5: Buy/Hold/Sell Recommendation & Backtest
+```
++====================================================================================================+
+|  RECOMMENDATION: 🟢 BUY  |  CONFIDENCE: 84.5%                                                      |
+|  RATIONALE: Expected 5-day return (+2.84%) exceeds threshold (+1.50%) with positive sentiment.     |
++====================================================================================================+
+|  [ Walk-forward Backtest Equity Curve: Strategy (+33.16%) vs Buy & Hold Benchmark (+13.60%) ]     |
+|  [ Underwater Drawdown Plot: Strategy Max Drawdown (-2.03%) vs Buy & Hold (-27.67%) ]             |
++----------------------------------------------------------------------------------------------------+
+```
+*(Placeholder: Run `streamlit run app.py` and inspect Tab 5)*
 
 ---
 
-## 🛠️ Quick Start
+## 📦 Installation
 
-### 1. Download Market Data
+### Prerequisites
+- **Python 3.10 to 3.14** (64-bit recommended)
+- **Git**
+- Optional: Virtual environment (`venv` or `conda`)
+
+### 1. Clone the Repository
 ```bash
-python src/data_loader.py
+git clone https://github.com/sahumohnish07-beep/Northgate-AI-Stock-Predictor.git
+cd Northgate-AI-Stock-Predictor
 ```
 
-### 2. Train & Evaluate Baseline Models
+### 2. Set Up a Virtual Environment
 ```bash
-python src/models.py
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# Linux / macOS
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-### 3. Train & Evaluate 60-Day LSTM Model
+### 3. Install Dependencies
 ```bash
-python src/lstm_model.py RELIANCE.NS
+pip install -r requirements.txt
 ```
 
-### 4. Run FinBERT Sentiment Analysis & Retrain
+### 4. Configure Environment Variables (Optional)
+If you wish to use NewsAPI alongside Google News RSS, copy `.env.example` to `.env`:
 ```bash
-python src/sentiment.py RELIANCE.NS
+cp .env.example .env
 ```
-
-### 5. Run Portfolio Optimization
-```bash
-python src/portfolio.py
+Add your NewsAPI key if available:
+```env
+NEWS_API_KEY=your_actual_key_here
 ```
+*(Note: If no key is provided, the platform automatically falls back to Google News RSS and curated financial feeds).*
 
-### 6. Run Recommendation Engine & Backtest
-```bash
-python src/recommender.py
-```
+---
 
-### 7. Launch Interactive Dashboard
+## 🚀 Usage & Execution
+
+### Launch the Streamlit Web Application
 ```bash
 streamlit run app.py
 ```
+Open your browser at `http://localhost:8501`.
 
-### 8. Run All Unit Tests
+### Command-Line Modular Pipelines
+Each phase can also be executed independently from the command line:
+
 ```bash
-python -m unittest discover tests
+# 1. Harvest 5 years of daily market OHLCV data
+python -m src.data_loader
+
+# 2. Compute technical features and train baseline ML models
+python -m src.models
+
+# 3. Train and evaluate the 60-day stacked PyTorch LSTM
+python -m src.lstm_model RELIANCE.NS
+
+# 4. Fetch news headlines, execute FinBERT sentiment scoring, and retrain models
+python -m src.sentiment RELIANCE.NS
+
+# 5. Compute expected returns, covariance, and solve Modern Portfolio Theory
+python -m src.portfolio
+
+# 6. Execute algorithmic recommender and run walk-forward backtest
+python -m src.recommender
 ```
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+The platform features an automated test suite covering all modules:
+```bash
+pytest
+```
+
+To run individual module test suites:
+```bash
+pytest tests/test_data_loader.py
+pytest tests/test_features_and_models.py
+pytest tests/test_lstm_model.py
+pytest tests/test_sentiment.py
+pytest tests/test_portfolio.py
+pytest tests/test_recommender.py
+```
+
+Code formatting and linting:
+```bash
+# Format code
+black src tests app.py
+
+# Lint with ruff
+ruff check .
+```
+
+---
+
+## ⚠️ Limitations
+
+1. **Non-Stationary Regimes**: Financial markets undergo structural breaks caused by fiscal shifts, interest rate changes, and geopolitical events. Models trained on historical data may experience degraded accuracy during unprecedented volatility.
+2. **Sentiment Asynchrony**: RSS headline sentiment is periodic and may lag sudden flash-crash announcements or breaking after-hours corporate disclosures.
+3. **Execution Frictions**: Backtested returns assume frictionless trades and zero execution slippage. Real-world execution must account for brokerage commissions, Securities Transaction Tax (STT), stamp duty, and bid-ask spread liquidity.
+4. **End-of-Day Granularity**: Forecasts operate on daily closing prices and are designed for multi-day swing horizons, not high-frequency intraday trading.
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**. See the [LICENSE](file:///c:/Users/Mohnish%20Sahu/OneDrive/Desktop/Northgate-AI-Stock-Predicto/Northgate-AI-Stock-Predictor/LICENSE) file for complete terms.
+
+---
+
+## ⚖️ Disclaimer
+
+This software is provided "as is", without warranty of any kind, express or implied. Under no circumstances shall the authors or copyright holders be liable for any claim, damages, or financial loss resulting from the use of this software. Trading stocks and equities involves substantial risk of financial loss. Always consult a certified financial advisor before making investment decisions.

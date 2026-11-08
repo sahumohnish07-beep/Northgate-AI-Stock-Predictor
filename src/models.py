@@ -4,11 +4,11 @@ Trains and evaluates Linear Regression, Random Forest, and XGBoost models
 to forecast next-day closing stock prices using chronological 80/20 time-based splits.
 """
 
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 import json
 import logging
 import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 # Ensure project root is on sys.path
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -186,14 +186,16 @@ def train_and_evaluate_ticker(
             f"Test MAE: {test_metrics['MAE']:>7.2f} | Test MAPE: {test_metrics['MAPE_%']:>5.2f}%"
         )
 
-        ticker_results.append({
-            "Ticker": ticker,
-            "Model": model_name,
-            "Train_RMSE": train_metrics["RMSE"],
-            "Test_RMSE": test_metrics["RMSE"],
-            "Test_MAE": test_metrics["MAE"],
-            "Test_MAPE_%": test_metrics["MAPE_%"],
-        })
+        ticker_results.append(
+            {
+                "Ticker": ticker,
+                "Model": model_name,
+                "Train_RMSE": train_metrics["RMSE"],
+                "Test_RMSE": test_metrics["RMSE"],
+                "Test_MAE": test_metrics["MAE"],
+                "Test_MAPE_%": test_metrics["MAPE_%"],
+            }
+        )
 
         trained_models[model_name] = {
             "model": model,
@@ -242,7 +244,9 @@ def run_baseline_experiments(
     best_model_name = model_performance.sort_values(by="Test_MAPE_%").iloc[0]["Model"]
     best_mape = model_performance.sort_values(by="Test_MAPE_%").iloc[0]["Test_MAPE_%"]
 
-    logger.info(f"Top overall baseline model across all tickers: {best_model_name} (Mean MAPE: {best_mape:.2f}%)")
+    logger.info(
+        f"Top overall baseline model across all tickers: {best_model_name} (Mean MAPE: {best_mape:.2f}%)"
+    )
 
     # Select primary stock model (RELIANCE.NS or first available) as representative saved artifact
     primary_ticker = tickers_to_run[0]
@@ -279,5 +283,7 @@ if __name__ == "__main__":
     print("=" * 75)
     print(results_table.to_string(index=False))
     print("=" * 75)
-    print(f"Best Model Selected: {meta['best_model_name']} (Saved to models/best_model.joblib)")
+    print(
+        f"Best Model Selected: {meta['best_model_name']} (Saved to models/best_model.joblib)"
+    )
     print("=" * 75)

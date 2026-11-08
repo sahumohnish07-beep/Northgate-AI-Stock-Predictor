@@ -1,7 +1,8 @@
 """Application configuration and constants."""
 
-from pathlib import Path
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env if present
@@ -31,4 +32,3 @@ DEFAULT_TEST_RATIO: float = 0.15
 NEWS_API_KEY: str = os.getenv("NEWS_API_KEY", "")
 ALPHA_VANTAGE_API_KEY: str = os.getenv("ALPHA_VANTAGE_API_KEY", "")
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-

@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
 import pandas as pd
 import yfinance as yf
 
@@ -110,7 +111,9 @@ class StockDataFetcher:
                 if not df.empty:
                     return df
             except Exception as e:
-                logger.warning(f"Failed to read cache for {clean_symbol}: {e}. Re-downloading.")
+                logger.warning(
+                    f"Failed to read cache for {clean_symbol}: {e}. Re-downloading."
+                )
 
         logger.info(
             f"Downloading {clean_symbol} [period={period}, start={start}, end={end}, interval={interval}]"
@@ -118,7 +121,9 @@ class StockDataFetcher:
 
         ticker = yf.Ticker(clean_symbol)
         if start:
-            df = ticker.history(start=start, end=end, interval=interval, auto_adjust=False)
+            df = ticker.history(
+                start=start, end=end, interval=interval, auto_adjust=False
+            )
         else:
             df = ticker.history(period=period, interval=interval, auto_adjust=False)
 
@@ -157,6 +162,7 @@ class StockDataFetcher:
         # Calculate standard price returns
         df["Daily_Return"] = df["Close"].pct_change().fillna(0.0)
         import numpy as np
+
         # Log return = ln(P_t / P_{t-1})
         df["Log_Return"] = np.log(df["Close"] / df["Close"].shift(1)).fillna(0.0)
 
@@ -234,7 +240,9 @@ class StockDataFetcher:
                 "sector": info.get("sector", "N/A"),
                 "industry": info.get("industry", "N/A"),
                 "marketCap": info.get("marketCap", None),
-                "currentPrice": info.get("currentPrice", info.get("regularMarketPrice", None)),
+                "currentPrice": info.get(
+                    "currentPrice", info.get("regularMarketPrice", None)
+                ),
                 "fiftyTwoWeekHigh": info.get("fiftyTwoWeekHigh", None),
                 "fiftyTwoWeekLow": info.get("fiftyTwoWeekLow", None),
                 "trailingPE": info.get("trailingPE", None),
@@ -246,4 +254,3 @@ class StockDataFetcher:
         except Exception as e:
             logger.warning(f"Could not retrieve extended info for {clean_symbol}: {e}")
             return {"symbol": clean_symbol, "shortName": clean_symbol}
-

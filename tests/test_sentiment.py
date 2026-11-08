@@ -1,6 +1,7 @@
 """Unit tests for Phase 4: FinBERT news sentiment analysis and feature integration."""
 
 import unittest
+
 import numpy as np
 import pandas as pd
 
@@ -21,8 +22,12 @@ class TestSentimentAnalysis(unittest.TestCase):
 
     def test_finbert_score_polarity(self):
         """Verify that positive and negative financial headlines receive expected polarity signs."""
-        pos_headline = "Company reports record-breaking quarterly net profit and surges 15%."
-        neg_headline = "Severe regulatory penalties and major accounting fraud uncovered at firm."
+        pos_headline = (
+            "Company reports record-breaking quarterly net profit and surges 15%."
+        )
+        neg_headline = (
+            "Severe regulatory penalties and major accounting fraud uncovered at firm."
+        )
 
         pos_res = self.analyzer.score_headline(pos_headline)
         neg_res = self.analyzer.score_headline(neg_headline)
@@ -32,8 +37,12 @@ class TestSentimentAnalysis(unittest.TestCase):
         self.assertTrue(-1.0 <= neg_res["score"] <= 1.0)
 
         # Expected directionality
-        self.assertGreater(pos_res["score"], 0.0, "Positive headline should have positive score.")
-        self.assertLess(neg_res["score"], 0.0, "Negative headline should have negative score.")
+        self.assertGreater(
+            pos_res["score"], 0.0, "Positive headline should have positive score."
+        )
+        self.assertLess(
+            neg_res["score"], 0.0, "Negative headline should have negative score."
+        )
         self.assertEqual(pos_res["label"], "positive")
         self.assertEqual(neg_res["label"], "negative")
 
@@ -55,19 +64,34 @@ class TestSentimentAnalysis(unittest.TestCase):
             index=dates,
         )
 
-        sentiment_df = pd.DataFrame([
-            {"Date": "2026-10-02", "Ticker": "RELIANCE.NS", "Daily_Sentiment": 0.75, "Headline_Count": 2},
-            {"Date": "2026-10-05", "Ticker": "RELIANCE.NS", "Daily_Sentiment": -0.50, "Headline_Count": 1},
-        ])
+        sentiment_df = pd.DataFrame(
+            [
+                {
+                    "Date": "2026-10-02",
+                    "Ticker": "RELIANCE.NS",
+                    "Daily_Sentiment": 0.75,
+                    "Headline_Count": 2,
+                },
+                {
+                    "Date": "2026-10-05",
+                    "Ticker": "RELIANCE.NS",
+                    "Daily_Sentiment": -0.50,
+                    "Headline_Count": 1,
+                },
+            ]
+        )
 
-        merged = merge_sentiment_features(feature_df, sentiment_df, ticker="RELIANCE.NS")
+        merged = merge_sentiment_features(
+            feature_df, sentiment_df, ticker="RELIANCE.NS"
+        )
 
         self.assertIn("Sentiment_Score", merged.columns)
         self.assertIn("Sentiment_Lag_1", merged.columns)
         self.assertEqual(len(merged), len(feature_df))
-        self.assertEqual(merged.isna().sum().sum(), 0, "No NaNs allowed after sentiment merge.")
+        self.assertEqual(
+            merged.isna().sum().sum(), 0, "No NaNs allowed after sentiment merge."
+        )
 
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -9,19 +9,18 @@ An enterprise-grade, end-to-end AI platform featuring:
 """
 
 import json
-from pathlib import Path
 import pickle
 import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import streamlit as st
 import torch
+from plotly.subplots import make_subplots
 
 # Ensure project root is in sys.path
 ROOT_DIR = Path(__file__).resolve().parent
@@ -29,22 +28,24 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from src.data_loader import DEFAULT_TICKERS, load_raw_data
-from src.features import compute_bollinger_bands, compute_ema, compute_macd, compute_rsi, compute_sma, engineer_features
+from src.features import (
+    compute_bollinger_bands,
+    compute_ema,
+    compute_rsi,
+    compute_sma,
+    engineer_features,
+)
 from src.lstm_model import StockLSTM
 from src.portfolio import (
     DEFAULT_RISK_FREE_RATE,
     compute_expected_returns_and_covariance,
-    export_portfolio_allocations,
     generate_recommendations,
     load_historical_prices,
     optimize_all_profiles,
-    optimize_portfolio,
 )
 from src.recommender import (
     backtest_strategy,
-    compute_performance_metrics,
     generate_recommendation,
-    get_risk_thresholds,
 )
 
 # Page configuration
@@ -113,6 +114,7 @@ st.markdown(
 # Cached Data & Resource Loaders
 # ==============================================================================
 
+
 @st.cache_data(ttl=3600)
 def load_stock_df(ticker: str) -> pd.DataFrame:
     """Load and format historical daily stock prices."""
@@ -172,11 +174,15 @@ def load_lstm_weights() -> Tuple[Optional[StockLSTM], Optional[Any]]:
 
 
 @st.cache_data(ttl=3600)
-def compute_portfolio_data() -> Tuple[pd.Series, pd.DataFrame, Dict[str, Any], pd.DataFrame]:
+def compute_portfolio_data() -> (
+    Tuple[pd.Series, pd.DataFrame, Dict[str, Any], pd.DataFrame]
+):
     """Compute and cache multi-asset expected returns, covariance, and profile allocations."""
     prices = load_historical_prices(DEFAULT_TICKERS)
     mu, cov = compute_expected_returns_and_covariance(prices)
-    all_profiles = optimize_all_profiles(mu=mu, cov_matrix=cov, risk_free_rate=DEFAULT_RISK_FREE_RATE)
+    all_profiles = optimize_all_profiles(
+        mu=mu, cov_matrix=cov, risk_free_rate=DEFAULT_RISK_FREE_RATE
+    )
     recs = generate_recommendations(all_profiles)
     return mu, cov, all_profiles, recs
 
@@ -217,20 +223,21 @@ prediction_horizon = st.sidebar.select_slider(
 
 model_engine = st.sidebar.selectbox(
     "🧠 Forecasting Engine",
-    options=["Linear Regression (Best Baseline ML)", "LSTM Neural Network (Deep Learning)"],
+    options=[
+        "Linear Regression (Best Baseline ML)",
+        "LSTM Neural Network (Deep Learning)",
+    ],
     index=0,
     help="Select statistical baseline regression or deep recurrent LSTM architecture.",
 )
 
 st.sidebar.divider()
-st.sidebar.markdown(
-    """
+st.sidebar.markdown("""
     **Active Environment:**
     - 🇮🇳 Market: National Stock Exchange (NSE)
     - 📅 Lookback: 5 Years Daily OHLCV
     - 🏦 Risk-Free Rate: 6.0% (RBI 10Y G-Sec)
-    """
-)
+    """)
 
 
 # ==============================================================================
@@ -249,24 +256,36 @@ try:
     with st.spinner(f"Loading market data for {selected_ticker}..."):
         df_stock = load_stock_df(selected_ticker)
 except FileNotFoundError:
-    st.warning(f"⚠️ **Market data for `{selected_ticker}` is not available in `data/raw/`.**")
+    st.warning(
+        f"⚠️ **Market data for `{selected_ticker}` is not available in `data/raw/`.**"
+    )
     st.info(
         "Raw stock data is gitignored. Click below to download 5 years of daily market data "
         "directly from Yahoo Finance, or run `python -m src.data_loader` in your terminal."
     )
     col_dl1, col_dl2 = st.columns(2)
     with col_dl1:
-        if st.button(f"📥 Download {selected_ticker} Data", type="primary", use_container_width=True):
+        if st.button(
+            f"📥 Download {selected_ticker} Data",
+            type="primary",
+            use_container_width=True,
+        ):
             with st.spinner(f"Downloading historical data for {selected_ticker}..."):
                 from src.data_loader import download_ticker_data
+
                 download_ticker_data(selected_ticker)
                 st.cache_data.clear()
                 st.success(f"Downloaded {selected_ticker}! Reloading dashboard...")
                 st.rerun()
     with col_dl2:
-        if st.button("📥 Download All 5 Stocks (Full Universe)", use_container_width=True):
-            with st.spinner("Downloading full stock universe (RELIANCE, TCS, INFY, HDFCBANK, ITC)..."):
+        if st.button(
+            "📥 Download All 5 Stocks (Full Universe)", use_container_width=True
+        ):
+            with st.spinner(
+                "Downloading full stock universe (RELIANCE, TCS, INFY, HDFCBANK, ITC)..."
+            ):
                 from src.data_loader import download_multiple_tickers
+
                 download_multiple_tickers()
                 st.cache_data.clear()
                 st.success("Universe downloaded! Reloading dashboard...")
@@ -281,14 +300,16 @@ except Exception as e:
 # Navigation Tabs
 # ==============================================================================
 
-tab_overview, tab_prediction, tab_sentiment, tab_portfolio, tab_recommendation = st.tabs(
-    [
-        "📊 Market Overview",
-        "🔮 Price Prediction",
-        "📰 News Sentiment (FinBERT)",
-        "💼 Portfolio Optimization",
-        "🎯 Recommendations & Backtest",
-    ]
+tab_overview, tab_prediction, tab_sentiment, tab_portfolio, tab_recommendation = (
+    st.tabs(
+        [
+            "📊 Market Overview",
+            "🔮 Price Prediction",
+            "📰 News Sentiment (FinBERT)",
+            "💼 Portfolio Optimization",
+            "🎯 Recommendations & Backtest",
+        ]
+    )
 )
 
 
@@ -308,7 +329,9 @@ with tab_overview:
 
     high_52w = float(df_stock["High"].iloc[-252:].max())
     low_52w = float(df_stock["Low"].iloc[-252:].min())
-    rolling_vol_20d = float(df_stock["Close"].pct_change().iloc[-20:].std() * np.sqrt(252) * 100.0)
+    rolling_vol_20d = float(
+        df_stock["Close"].pct_change().iloc[-20:].std() * np.sqrt(252) * 100.0
+    )
 
     # Metric Row
     c1, c2, c3, c4 = st.columns(4)
@@ -330,8 +353,13 @@ with tab_overview:
         index=1,
         horizontal=True,
     )
-    days_map = {"3 Months": 63, "6 Months": 126, "1 Year": 252, "5 Years (All)": len(df_stock)}
-    display_df = df_stock.iloc[-days_map[timeframe]:]
+    days_map = {
+        "3 Months": 63,
+        "6 Months": 126,
+        "1 Year": 252,
+        "5 Years (All)": len(df_stock),
+    }
+    display_df = df_stock.iloc[-days_map[timeframe] :]
 
     # Compute technical overlays
     sma_20 = compute_sma(display_df["Close"], period=20)
@@ -347,7 +375,10 @@ with tab_overview:
         shared_xaxes=True,
         vertical_spacing=0.04,
         row_heights=[0.75, 0.25],
-        subplot_titles=[f"{selected_ticker} Price Chart with Overlays", "Trading Volume"],
+        subplot_titles=[
+            f"{selected_ticker} Price Chart with Overlays",
+            "Trading Volume",
+        ],
     )
 
     # Candlestick
@@ -367,15 +398,62 @@ with tab_overview:
     )
 
     # Technical Overlays
-    fig_candle.add_trace(go.Scatter(x=display_df.index, y=sma_20, name="SMA 20", line=dict(color="#2962ff", width=1.5)), row=1, col=1)
-    fig_candle.add_trace(go.Scatter(x=display_df.index, y=sma_50, name="SMA 50", line=dict(color="#ff6d00", width=1.5)), row=1, col=1)
-    fig_candle.add_trace(go.Scatter(x=display_df.index, y=bb["BB_Upper"], name="Upper BB", line=dict(color="rgba(150,150,150,0.5)", dash="dash", width=1)), row=1, col=1)
-    fig_candle.add_trace(go.Scatter(x=display_df.index, y=bb["BB_Lower"], name="Lower BB", line=dict(color="rgba(150,150,150,0.5)", dash="dash", width=1), fill="tonexty", fillcolor="rgba(200,200,200,0.1)"), row=1, col=1)
+    fig_candle.add_trace(
+        go.Scatter(
+            x=display_df.index,
+            y=sma_20,
+            name="SMA 20",
+            line=dict(color="#2962ff", width=1.5),
+        ),
+        row=1,
+        col=1,
+    )
+    fig_candle.add_trace(
+        go.Scatter(
+            x=display_df.index,
+            y=sma_50,
+            name="SMA 50",
+            line=dict(color="#ff6d00", width=1.5),
+        ),
+        row=1,
+        col=1,
+    )
+    fig_candle.add_trace(
+        go.Scatter(
+            x=display_df.index,
+            y=bb["BB_Upper"],
+            name="Upper BB",
+            line=dict(color="rgba(150,150,150,0.5)", dash="dash", width=1),
+        ),
+        row=1,
+        col=1,
+    )
+    fig_candle.add_trace(
+        go.Scatter(
+            x=display_df.index,
+            y=bb["BB_Lower"],
+            name="Lower BB",
+            line=dict(color="rgba(150,150,150,0.5)", dash="dash", width=1),
+            fill="tonexty",
+            fillcolor="rgba(200,200,200,0.1)",
+        ),
+        row=1,
+        col=1,
+    )
 
     # Volume Bars
-    vol_colors = ["#26a69a" if c >= o else "#ef5350" for c, o in zip(display_df["Close"], display_df["Open"])]
+    vol_colors = [
+        "#26a69a" if c >= o else "#ef5350"
+        for c, o in zip(display_df["Close"], display_df["Open"])
+    ]
     fig_candle.add_trace(
-        go.Bar(x=display_df.index, y=display_df["Volume"], name="Volume", marker_color=vol_colors, opacity=0.7),
+        go.Bar(
+            x=display_df.index,
+            y=display_df["Volume"],
+            name="Volume",
+            marker_color=vol_colors,
+            opacity=0.7,
+        ),
         row=2,
         col=1,
     )
@@ -394,7 +472,11 @@ with tab_overview:
     with col_rsi:
         st.markdown("##### Relative Strength Index (RSI 14)")
         current_rsi = float(rsi.iloc[-1])
-        rsi_status = "Overbought (>70)" if current_rsi > 70 else ("Oversold (<30)" if current_rsi < 30 else "Neutral (30-70)")
+        rsi_status = (
+            "Overbought (>70)"
+            if current_rsi > 70
+            else ("Oversold (<30)" if current_rsi < 30 else "Neutral (30-70)")
+        )
         fig_rsi = go.Figure(
             go.Indicator(
                 mode="gauge+number",
@@ -425,7 +507,15 @@ with tab_overview:
             display_df[["Open", "High", "Low", "Close", "Volume"]]
             .tail(6)
             .sort_index(ascending=False)
-            .style.format({"Open": "₹{:.2f}", "High": "₹{:.2f}", "Low": "₹{:.2f}", "Close": "₹{:.2f}", "Volume": "{:,}"}),
+            .style.format(
+                {
+                    "Open": "₹{:.2f}",
+                    "High": "₹{:.2f}",
+                    "Low": "₹{:.2f}",
+                    "Close": "₹{:.2f}",
+                    "Volume": "{:,}",
+                }
+            ),
             use_container_width=True,
         )
 
@@ -440,7 +530,9 @@ with tab_prediction:
     # Forecast calculation
     last_close = float(df_stock["Close"].iloc[-1])
     predicted_prices = []
-    future_dates = pd.bdate_range(start=df_stock.index[-1] + pd.Timedelta(days=1), periods=prediction_horizon)
+    future_dates = pd.bdate_range(
+        start=df_stock.index[-1] + pd.Timedelta(days=1), periods=prediction_horizon
+    )
 
     ml_model, ml_features = load_best_baseline_model()
     lstm_net, lstm_scaler = load_lstm_weights()
@@ -459,7 +551,9 @@ with tab_prediction:
                 for _ in range(prediction_horizon):
                     with torch.no_grad():
                         next_scaled = lstm_net(cur_seq).item()
-                    next_price = float(lstm_scaler.inverse_transform([[next_scaled]])[0, 0])
+                    next_price = float(
+                        lstm_scaler.inverse_transform([[next_scaled]])[0, 0]
+                    )
                     temp_prices.append(next_price)
                     # Roll window
                     new_point = torch.tensor([[[next_scaled]]], dtype=torch.float32)
@@ -475,18 +569,27 @@ with tab_prediction:
 
                 # Projected daily growth rate
                 daily_drift = (next_day_pred - last_close) / last_close
-                predicted_prices = [last_close * ((1.0 + daily_drift) ** (i + 1)) for i in range(prediction_horizon)]
+                predicted_prices = [
+                    last_close * ((1.0 + daily_drift) ** (i + 1))
+                    for i in range(prediction_horizon)
+                ]
             else:
                 # Fallback to rolling exponential momentum if model files are unreadable
                 momentum_5d = float(df_stock["Close"].pct_change(5).iloc[-1])
                 daily_rate = momentum_5d / 5.0
-                predicted_prices = [last_close * ((1.0 + daily_rate) ** (i + 1)) for i in range(prediction_horizon)]
+                predicted_prices = [
+                    last_close * ((1.0 + daily_rate) ** (i + 1))
+                    for i in range(prediction_horizon)
+                ]
 
     except Exception as e:
         st.warning(f"Note: Simulation fallback applied ({e}).")
         momentum_5d = float(df_stock["Close"].pct_change(5).iloc[-1])
         daily_rate = momentum_5d / 5.0
-        predicted_prices = [last_close * ((1.0 + daily_rate) ** (i + 1)) for i in range(prediction_horizon)]
+        predicted_prices = [
+            last_close * ((1.0 + daily_rate) ** (i + 1))
+            for i in range(prediction_horizon)
+        ]
 
     final_predicted_price = predicted_prices[-1]
     projected_return = (final_predicted_price - last_close) / last_close
@@ -527,7 +630,11 @@ with tab_prediction:
             y=forecast_y,
             mode="lines+markers",
             name=f"{prediction_horizon}-Day Forecast ({model_engine.split(' ')[0]})",
-            line=dict(color="#2ca02c" if projected_return >= 0 else "#d62728", width=3, dash="dash"),
+            line=dict(
+                color="#2ca02c" if projected_return >= 0 else "#d62728",
+                width=3,
+                dash="dash",
+            ),
             marker=dict(size=6),
         )
     )
@@ -535,8 +642,12 @@ with tab_prediction:
     # Confidence interval band (based on historical standard error)
     daily_std = float(df_stock["Close"].pct_change().std())
     hist_std = [daily_std * np.sqrt(h) for h in range(1, prediction_horizon + 1)]
-    upper_band = [last_close] + [p * (1.0 + 1.96 * s) for p, s in zip(predicted_prices, hist_std)]
-    lower_band = [last_close] + [p * (1.0 - 1.96 * s) for p, s in zip(predicted_prices, hist_std)]
+    upper_band = [last_close] + [
+        p * (1.0 + 1.96 * s) for p, s in zip(predicted_prices, hist_std)
+    ]
+    lower_band = [last_close] + [
+        p * (1.0 - 1.96 * s) for p, s in zip(predicted_prices, hist_std)
+    ]
 
     fig_pred.add_trace(
         go.Scatter(
@@ -555,7 +666,11 @@ with tab_prediction:
             mode="lines",
             line=dict(width=0),
             fill="tonexty",
-            fillcolor="rgba(44, 160, 44, 0.15)" if projected_return >= 0 else "rgba(214, 39, 40, 0.15)",
+            fillcolor=(
+                "rgba(44, 160, 44, 0.15)"
+                if projected_return >= 0
+                else "rgba(214, 39, 40, 0.15)"
+            ),
             name="95% Confidence Interval",
         )
     )
@@ -579,7 +694,9 @@ with tab_sentiment:
     st.subheader(f"📰 FinBERT News Sentiment Analysis: {selected_ticker}")
 
     df_sentiment = load_processed_sentiment()
-    stock_sent = df_sentiment[df_sentiment["Ticker"] == selected_ticker].sort_values("Date")
+    stock_sent = df_sentiment[df_sentiment["Ticker"] == selected_ticker].sort_values(
+        "Date"
+    )
 
     if not stock_sent.empty:
         latest_score = float(stock_sent["Daily_Sentiment"].iloc[-1])
@@ -610,7 +727,9 @@ with tab_sentiment:
     # Plotly Sentiment Trend Chart
     if not stock_sent.empty and len(stock_sent) > 1:
         st.markdown("##### Historical Sentiment Polarity Trend")
-        bar_colors = ["#2ca02c" if v >= 0 else "#d62728" for v in stock_sent["Daily_Sentiment"]]
+        bar_colors = [
+            "#2ca02c" if v >= 0 else "#d62728" for v in stock_sent["Daily_Sentiment"]
+        ]
 
         fig_sent = go.Figure(
             data=[
@@ -622,8 +741,18 @@ with tab_sentiment:
                 )
             ]
         )
-        fig_sent.add_hline(y=0.10, line_dash="dot", line_color="green", annotation_text="Buy Threshold (+0.10)")
-        fig_sent.add_hline(y=-0.10, line_dash="dot", line_color="red", annotation_text="Sell Threshold (-0.10)")
+        fig_sent.add_hline(
+            y=0.10,
+            line_dash="dot",
+            line_color="green",
+            annotation_text="Buy Threshold (+0.10)",
+        )
+        fig_sent.add_hline(
+            y=-0.10,
+            line_dash="dot",
+            line_color="red",
+            annotation_text="Sell Threshold (-0.10)",
+        )
         fig_sent.update_layout(
             yaxis_title="Sentiment Polarity (-1.0 to +1.0)",
             xaxis_title="Date",
@@ -632,15 +761,37 @@ with tab_sentiment:
         )
         st.plotly_chart(fig_sent, use_container_width=True)
     else:
-        st.info("Additional historical news headlines are actively being cataloged for this equity.")
+        st.info(
+            "Additional historical news headlines are actively being cataloged for this equity."
+        )
 
     # Recent Curated Financial Headlines
     st.markdown("##### Recent Financial Headlines & Classification")
     sample_headlines = [
-        {"Headline": f"{selected_ticker} reports quarterly net revenue expansion and robust operating margins.", "Source": "LiveMint", "Sentiment": "Positive", "Score": 0.85},
-        {"Headline": f"Institutional mutual fund inflows into {selected_ticker} accelerate following dividend yield announcement.", "Source": "Economic Times", "Sentiment": "Positive", "Score": 0.72},
-        {"Headline": f"Regulatory compliance guidelines issued for broader index constituents including {selected_ticker}.", "Source": "Business Standard", "Sentiment": "Neutral", "Score": 0.04},
-        {"Headline": f"Global energy and currency headwinds may constrain near-term margin growth.", "Source": "Reuters", "Sentiment": "Negative", "Score": -0.68},
+        {
+            "Headline": f"{selected_ticker} reports quarterly net revenue expansion and robust operating margins.",
+            "Source": "LiveMint",
+            "Sentiment": "Positive",
+            "Score": 0.85,
+        },
+        {
+            "Headline": f"Institutional mutual fund inflows into {selected_ticker} accelerate following dividend yield announcement.",
+            "Source": "Economic Times",
+            "Sentiment": "Positive",
+            "Score": 0.72,
+        },
+        {
+            "Headline": f"Regulatory compliance guidelines issued for broader index constituents including {selected_ticker}.",
+            "Source": "Business Standard",
+            "Sentiment": "Neutral",
+            "Score": 0.04,
+        },
+        {
+            "Headline": "Global energy and currency headwinds may constrain near-term margin growth.",
+            "Source": "Reuters",
+            "Sentiment": "Negative",
+            "Score": -0.68,
+        },
     ]
     st.table(pd.DataFrame(sample_headlines))
 
@@ -656,7 +807,9 @@ with tab_portfolio:
         with st.spinner("Calculating optimal Sharpe ratio and covariance matrix..."):
             mu_vec, cov_mat, profile_dict, alloc_recs = compute_portfolio_data()
 
-        active_profile_data = profile_dict.get(selected_risk_profile, profile_dict["Medium"])
+        active_profile_data = profile_dict.get(
+            selected_risk_profile, profile_dict["Medium"]
+        )
         p_ret = active_profile_data["expected_return"]
         p_vol = active_profile_data["annual_volatility"]
         p_sharpe = active_profile_data["sharpe_ratio"]
@@ -674,7 +827,9 @@ with tab_portfolio:
 
         with col_pie:
             st.markdown(f"##### Asset Weights: {active_profile_data['risk_profile']}")
-            weights_series = pd.Series(active_profile_data["weights"]).sort_values(ascending=False)
+            weights_series = pd.Series(active_profile_data["weights"]).sort_values(
+                ascending=False
+            )
             filtered_weights = weights_series[weights_series > 0.001]
 
             fig_pie = go.Figure(
@@ -685,7 +840,15 @@ with tab_portfolio:
                         hole=0.45,
                         textinfo="label+percent",
                         hoverinfo="label+percent+value",
-                        marker=dict(colors=["#1f77b4", "#2ca02c", "#ff7f0e", "#d62728", "#9467bd"]),
+                        marker=dict(
+                            colors=[
+                                "#1f77b4",
+                                "#2ca02c",
+                                "#ff7f0e",
+                                "#d62728",
+                                "#9467bd",
+                            ]
+                        ),
                     )
                 ]
             )
@@ -713,7 +876,11 @@ with tab_portfolio:
                 )
 
             # Profile Optimal Points
-            markers = {"Low": ("square", "#1f77b4", 14), "Medium": ("star", "#2ca02c", 18), "High": ("triangle-up", "#d62728", 15)}
+            markers = {
+                "Low": ("square", "#1f77b4", 14),
+                "Medium": ("star", "#2ca02c", 18),
+                "High": ("triangle-up", "#d62728", 15),
+            }
             for k, dat in profile_dict.items():
                 sym, col, sz = markers.get(k, ("circle", "#000", 12))
                 fig_ef.add_trace(
@@ -722,32 +889,61 @@ with tab_portfolio:
                         y=[dat["expected_return"]],
                         mode="markers",
                         name=f"{k} Risk ({dat['expected_return']:.1%})",
-                        marker=dict(size=sz, symbol=sym, color=col, line=dict(width=1.5, color="black")),
+                        marker=dict(
+                            size=sz,
+                            symbol=sym,
+                            color=col,
+                            line=dict(width=1.5, color="black"),
+                        ),
                     )
                 )
 
             # Risk-free benchmark line
-            fig_ef.add_hline(y=DEFAULT_RISK_FREE_RATE, line_dash="dot", line_color="gray", annotation_text="Rf (6.0%)")
+            fig_ef.add_hline(
+                y=DEFAULT_RISK_FREE_RATE,
+                line_dash="dot",
+                line_color="gray",
+                annotation_text="Rf (6.0%)",
+            )
 
             fig_ef.update_layout(
                 xaxis_title="Annualized Volatility (Risk)",
                 yaxis_title="Expected Annual Return",
                 height=420,
                 template="plotly_white",
-                legend=dict(orientation="h", yanchor="bottom", y=-0.35, xanchor="center", x=0.5),
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=-0.35, xanchor="center", x=0.5
+                ),
             )
             st.plotly_chart(fig_ef, use_container_width=True)
 
         # Detailed allocations table
         st.markdown("##### Consolidated Cross-Profile Weight Matrix & Recommendations")
-        st.dataframe(alloc_recs.style.format({"Mean_Weight": "{:.1%}", "Low_Risk_Weight": "{:.1%}", "Medium_Risk_Weight": "{:.1%}", "High_Risk_Weight": "{:.1%}"}), use_container_width=True)
+        st.dataframe(
+            alloc_recs.style.format(
+                {
+                    "Mean_Weight": "{:.1%}",
+                    "Low_Risk_Weight": "{:.1%}",
+                    "Medium_Risk_Weight": "{:.1%}",
+                    "High_Risk_Weight": "{:.1%}",
+                }
+            ),
+            use_container_width=True,
+        )
 
     except FileNotFoundError:
-        st.warning("⚠️ **Portfolio calculation requires raw historical data for all 5 default stocks.**")
-        st.info("Some stock data files are missing from `data/raw/`. Click below to download the complete universe.")
+        st.warning(
+            "⚠️ **Portfolio calculation requires raw historical data for all 5 default stocks.**"
+        )
+        st.info(
+            "Some stock data files are missing from `data/raw/`. Click below to download the complete universe."
+        )
         if st.button("📥 Download All 5 Stocks Universe", key="dl_portfolio_universe"):
-            with st.spinner("Downloading full stock universe (RELIANCE, TCS, INFY, HDFCBANK, ITC)..."):
+            with st.spinner(
+                "Downloading full stock universe (RELIANCE, TCS, INFY, HDFCBANK, ITC)..."
+            ):
                 from src.data_loader import download_multiple_tickers
+
                 download_multiple_tickers()
                 st.cache_data.clear()
                 st.success("Universe downloaded! Reloading...")
@@ -778,7 +974,11 @@ with tab_recommendation:
     th = rec_result["thresholds"]
 
     # Styled Recommendation Card
-    card_css = "recommendation-buy" if action == "Buy" else ("recommendation-sell" if action == "Sell" else "recommendation-hold")
+    card_css = (
+        "recommendation-buy"
+        if action == "Buy"
+        else ("recommendation-sell" if action == "Sell" else "recommendation-hold")
+    )
     action_icon = "🟢" if action == "Buy" else ("🔴" if action == "Sell" else "🟡")
 
     st.markdown(
@@ -807,12 +1007,22 @@ with tab_recommendation:
 
     # Walk-Forward Backtesting Engine
     st.markdown("### 🔬 Walk-Forward Lookahead-Free Backtest")
-    st.caption("Validates the recommendation decision rules against a passive Buy & Hold benchmark over 5 years of historical trading.")
+    st.caption(
+        "Validates the recommendation decision rules against a passive Buy & Hold benchmark over 5 years of historical trading."
+    )
 
     b1, b2 = st.columns([1, 3])
     with b1:
-        initial_inv = st.number_input("Initial Investment (INR)", min_value=10000, max_value=10000000, value=100000, step=10000)
-        run_bt = st.button("🚀 Run Backtest Simulation", type="primary", use_container_width=True)
+        initial_inv = st.number_input(
+            "Initial Investment (INR)",
+            min_value=10000,
+            max_value=10000000,
+            value=100000,
+            step=10000,
+        )
+        run_bt = st.button(
+            "🚀 Run Backtest Simulation", type="primary", use_container_width=True
+        )
 
     # Execute Backtest
     close_series = df_stock["Close"].astype(float)
@@ -821,10 +1031,14 @@ with tab_recommendation:
     common_idx = pred_5d_series.index.intersection(ret_series.index)
 
     sent_series = pd.Series(latest_score, index=common_idx)
-    vol_series = ret_series.loc[common_idx].rolling(20).std().bfill().fillna(0.20) * np.sqrt(252)
+    vol_series = ret_series.loc[common_idx].rolling(20).std().bfill().fillna(
+        0.20
+    ) * np.sqrt(252)
 
     try:
-        with st.spinner("Simulating chronological order fills and risk-free cash allocation..."):
+        with st.spinner(
+            "Simulating chronological order fills and risk-free cash allocation..."
+        ):
             bt_results = backtest_strategy(
                 price_series=close_series.loc[common_idx],
                 predicted_returns_5d=pred_5d_series.loc[common_idx],
@@ -841,9 +1055,21 @@ with tab_recommendation:
 
         # Backtest KPI Cards
         k1, k2, k3, k4 = st.columns(4)
-        k1.metric("Strategy Total Return", f"{strat_m['Total_Return']:+.2%}", f"{comp_df.loc[0, 'Outperformance']:+.2f}% vs B&H")
-        k2.metric("Strategy Max Drawdown", f"{strat_m['Max_Drawdown']:.2%}", f"{comp_df.loc[4, 'Outperformance']:+.2f}% Risk Curbed")
-        k3.metric("Annualized Sharpe", f"{strat_m['Sharpe_Ratio']:.2f}", f"B&H: {bh_m['Sharpe_Ratio']:.2f}")
+        k1.metric(
+            "Strategy Total Return",
+            f"{strat_m['Total_Return']:+.2%}",
+            f"{comp_df.loc[0, 'Outperformance']:+.2f}% vs B&H",
+        )
+        k2.metric(
+            "Strategy Max Drawdown",
+            f"{strat_m['Max_Drawdown']:.2%}",
+            f"{comp_df.loc[4, 'Outperformance']:+.2f}% Risk Curbed",
+        )
+        k3.metric(
+            "Annualized Sharpe",
+            f"{strat_m['Sharpe_Ratio']:.2f}",
+            f"B&H: {bh_m['Sharpe_Ratio']:.2f}",
+        )
         k4.metric("Position Transitions", f"{bt_results['trade_count']} Trades")
 
         # Interactive Plotly Dual Panel Backtest Chart
@@ -853,7 +1079,10 @@ with tab_recommendation:
             shared_xaxes=True,
             vertical_spacing=0.06,
             row_heights=[0.7, 0.3],
-            subplot_titles=["Cumulative Portfolio Valuation (INR)", "Underwater Drawdown Comparison (%)"],
+            subplot_titles=[
+                "Cumulative Portfolio Valuation (INR)",
+                "Underwater Drawdown Comparison (%)",
+            ],
         )
 
         fig_bt.add_trace(
@@ -904,7 +1133,9 @@ with tab_recommendation:
         fig_bt.update_layout(
             height=580,
             template="plotly_white",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
             margin=dict(l=20, r=20, t=40, b=20),
         )
         st.plotly_chart(fig_bt, use_container_width=True)
